@@ -18,6 +18,7 @@ integer i,ispec,j,iglob
 
   real(kind=4),dimension(:,:,:),allocatable :: rhop_save, vp_save, vs_save, x_save, z_save
   real(kind=4),dimension(:,:,:),allocatable :: QKappa_save, Qmu_save !YY
+  real(kind=4),dimension(:,:,:),allocatable :: Qalpha_save, Qbeta_save ! PWY
   real(kind=4),dimension(:,:,:),allocatable :: rho_save, kappa_save, mu_save
   real(kind=4),dimension(:,:,:),allocatable :: c11_save, c13_save, c15_save, c33_save, c35_save, c55_save ! PWY
   real(kind=4),dimension(:,:,:),allocatable :: c12_save, c23_save, c25_save ! PWY
@@ -37,8 +38,13 @@ integer i,ispec,j,iglob
   real(kind=4),dimension(:,:,:),allocatable :: tti_thom_vp_save, tti_thom_vs_save, tti_thom_epsilon_save
   real(kind=4),dimension(:,:,:),allocatable :: tti_thom_delta_save, tti_thom_theta_save, tti_thom_rhop_save
 
+  real(kind=4),dimension(:,:,:),allocatable :: tti_vel_vp_save, tti_vel_vs_save, tti_vel_vph_save
+  real(kind=4),dimension(:,:,:),allocatable :: tti_vel_vpn_save,tti_vel_theta_save, tti_vel_rhop_save
+
+  real(kind=4),dimension(:,:,:),allocatable :: mask_topo_save !topography mask
 
 if ( trim(SAVE_MODEL) /= 'default' ) then
+   allocate(mask_topo_save(NGLLX,NGLLZ,nspec))
    allocate(rhop_save(NGLLX,NGLLZ,nspec))
    allocate(vp_save(NGLLX,NGLLZ,nspec))
    allocate(vs_save(NGLLX,NGLLZ,nspec))
@@ -47,6 +53,8 @@ if ( trim(SAVE_MODEL) /= 'default' ) then
    allocate(mu_save(NGLLX,NGLLZ,nspec))
    allocate(QKappa_save(NGLLX,NGLLZ,nspec)) !YY
    allocate(Qmu_save(NGLLX,NGLLZ,nspec)) !YY
+   allocate(Qalpha_save(NGLLX,NGLLZ,nspec))
+   allocate(Qbeta_save(NGLLX,NGLLZ,nspec))
    allocate(x_save(NGLLX,NGLLZ,nspec))
    allocate(z_save(NGLLX,NGLLZ,nspec))
    allocate(ip_save(NGLLX,NGLLZ,nspec))
@@ -85,6 +93,12 @@ if ( trim(SAVE_MODEL) /= 'default' ) then
    allocate(tti_thom_epsilon_save(NGLLX,NGLLZ,nspec))
    allocate(tti_thom_delta_save(NGLLX,NGLLZ,nspec))
    allocate(tti_thom_theta_save(NGLLX,NGLLZ,nspec))
+   allocate(tti_vel_rhop_save(NGLLX,NGLLZ,nspec))
+   allocate(tti_vel_vp_save(NGLLX,NGLLZ,nspec))
+   allocate(tti_vel_vs_save(NGLLX,NGLLZ,nspec))
+   allocate(tti_vel_vph_save(NGLLX,NGLLZ,nspec))
+   allocate(tti_vel_vpn_save(NGLLX,NGLLZ,nspec))
+   allocate(tti_vel_theta_save(NGLLX,NGLLZ,nspec))   
 
 do ispec=1,nspec
           do j = 1,NGLLZ
@@ -92,6 +106,8 @@ do ispec=1,nspec
 
               QKappa_save(i,j,ispec) = QKappastore(i,j,ispec) !YY
               Qmu_save(i,j,ispec) = Qmustore(i,j,ispec) !YY
+              Qalpha_save(i,j,ispec) = Qalphastore(i,j,ispec)
+              Qbeta_save(i,j,ispec) = Qbetastore(i,j,ispec)
               !rho_save(i,j,ispec)            = density(1,kmato(ispec)) !YY
               rhop_save(i,j,ispec)            = rhostore(i,j,ispec)  !YY
              ! lambdal_unrelaxed_elastic      = poroelastcoef(1,1,kmato(ispec))
@@ -108,6 +124,12 @@ do ispec=1,nspec
               rho_save(i,j,ispec)= rhostore(i,j,ispec)
               kappa_save(i,j,ispec)= kappastore(i,j,ispec)
               mu_save(i,j,ispec)= mustore(i,j,ispec)
+
+              if (ABS(vp_save(i,j,ispec) - TOPO_VP) < 1._CUSTOM_REAL) then
+                mask_topo_save(i,j,ispec) = 0._CUSTOM_REAL
+              else
+                mask_topo_save(i,j,ispec) = 1._CUSTOM_REAL
+              endif
 
               c11_save(i,j,ispec) = c11store(i,j,ispec) ! PWY
               c13_save(i,j,ispec) = c13store(i,j,ispec) ! PWY
@@ -126,7 +148,7 @@ do ispec=1,nspec
                    (c11_save(i,j,ispec)-c33_save(i,j,ispec)))
               endif
 
-              if (ANISO .and. (trim(M_PAR)=='ttithom')) then
+              if (ANISO .and. (trim(M_PAR)=='ttithom' .OR. trim(M_PAR)=='ttivel')) then
                 tti_thom_rhop_save(i,j,ispec) = rhostore(i,j,ispec)
                 tti_thom_vp_save(i,j,ispec) = SQRT(c33store(i,j,ispec)/rhostore(i,j,ispec))
                 tti_thom_vs_save(i,j,ispec) = SQRT(c55store(i,j,ispec)/rhostore(i,j,ispec))
@@ -138,6 +160,19 @@ do ispec=1,nspec
                   (c33store(i,j,ispec)-c55store(i,j,ispec))/(2._CUSTOM_REAL*c33store(i,j,ispec))
 
                 tti_thom_theta_save(i,j,ispec) = 0.5 * ATAN(2*(c15_save(i,j,ispec)+c35_save(i,j,ispec))/&
+                   (c11_save(i,j,ispec)-c33_save(i,j,ispec)))
+                
+                tti_vel_rhop_save(i,j,ispec) = rhostore(i,j,ispec)
+                tti_vel_vp_save(i,j,ispec) = SQRT(c33store(i,j,ispec)/rhostore(i,j,ispec))
+                tti_vel_vs_save(i,j,ispec) = SQRT(c55store(i,j,ispec)/rhostore(i,j,ispec))
+
+                tti_vel_vph_save(i,j,ispec) = tti_vel_vp_save(i,j,ispec) * SQRT(1._CUSTOM_REAL+&
+                   2._CUSTOM_REAL*tti_thom_epsilon_save(i,j,ispec))
+                
+                tti_vel_vpn_save(i,j,ispec) = tti_vel_vp_save(i,j,ispec) * SQRT(1._CUSTOM_REAL+&
+                   2._CUSTOM_REAL*tti_thom_delta_save(i,j,ispec))
+
+                tti_vel_theta_save(i,j,ispec) = 0.5 * ATAN(2*(c15_save(i,j,ispec)+c35_save(i,j,ispec))/&
                    (c11_save(i,j,ispec)-c33_save(i,j,ispec)))
               endif
               lambda_save(i,j,ispec) = rhostore(i,j,ispec)*vp_save(i,j,ispec)**2 - &
@@ -230,6 +265,14 @@ enddo
           open(unit=172,file=outputname,status='unknown',form='unformatted')
           write(172) rho_save
           close(172)
+
+        if ( TOPO_MASK ) then
+          write(outputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_mask_topo.bin'
+          open(unit=172,file=outputname,status='unknown',form='unformatted')
+          write(172) mask_topo_save
+          close(172)
+        endif
+
         if (.not. ANISO .and. (trim(M_PAR)=='isodv')) then
           write(outputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_vp.bin'
           open(unit=172,file=outputname,status='unknown',form='unformatted')
@@ -239,15 +282,15 @@ enddo
           open(unit=172,file=outputname,status='unknown',form='unformatted')
           write(172) vs_save
           close(172)
-          !YY 
-          write(outputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_QKappa.bin'
+          ! PWY 
+          write(outputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_Qalpha.bin'
           open(unit=172,file=outputname,status='unknown',form='unformatted')
-          write(172) QKappa_save
+          write(172) Qalpha_save
           close(172)
-          !YY 
-          write(outputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_Qmu.bin'
+          ! PWY 
+          write(outputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_Qbeta.bin'
           open(unit=172,file=outputname,status='unknown',form='unformatted')
-          write(172) Qmu_save
+          write(172) Qbeta_save
           close(172)
           ! PWY
         endif
@@ -524,6 +567,37 @@ enddo
           open(unit=172,file=outputname,status='unknown',form='unformatted')
           write(172) tti_thom_theta_save
           close(172)
+        endif
+        if (ANISO .and. (trim(M_PAR)=='ttivel')) then
+          write(outputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_tti_vel_rhop.bin'
+          open(unit=172,file=outputname,status='unknown',form='unformatted')
+          write(172) tti_vel_rhop_save
+          close(172)
+
+          write(outputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_tti_vel_vp.bin'
+          open(unit=172,file=outputname,status='unknown',form='unformatted')
+          write(172) tti_vel_vp_save
+          close(172)
+
+          write(outputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_tti_vel_vs.bin'
+          open(unit=172,file=outputname,status='unknown',form='unformatted')
+          write(172) tti_vel_vs_save
+          close(172)
+
+          write(outputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_tti_vel_vph.bin'
+          open(unit=172,file=outputname,status='unknown',form='unformatted')
+          write(172) tti_vel_vph_save
+          close(172)
+
+          write(outputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_tti_vel_vpn.bin'
+          open(unit=172,file=outputname,status='unknown',form='unformatted')
+          write(172) tti_vel_vpn_save
+          close(172)
+
+          write(outputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_theta.bin'
+          open(unit=172,file=outputname,status='unknown',form='unformatted')
+          write(172) tti_vel_theta_save
+          close(172)          
         endif
         if (ANISO .and. (trim(M_PAR)=='htiec' .OR. trim(M_PAR)=='vtiec')) then  
           write(outputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_c11.bin'

@@ -251,7 +251,7 @@
   allocate(tti_ecu_c13_kl(NGLLX,NGLLZ,nspec_elastic_b))
   allocate(tti_ecu_c33_kl(NGLLX,NGLLZ,nspec_elastic_b))
   allocate(tti_ecu_c55_kl(NGLLX,NGLLZ,nspec_elastic_b))
-  allocate(tti_ec_theta_kl(NGLLX,NGLLZ,nspec_elastic_b))
+  allocate(tti_ecu_theta_kl(NGLLX,NGLLZ,nspec_elastic_b))
 
   allocate(tti_thom_rhop_kl(NGLLX,NGLLZ,nspec_elastic_b))
   allocate(tti_thom_alpha_kl(NGLLX,NGLLZ,nspec_elastic_b))
@@ -259,6 +259,13 @@
   allocate(tti_thom_epsilon_kl(NGLLX,NGLLZ,nspec_elastic_b))
   allocate(tti_thom_delta_kl(NGLLX,NGLLZ,nspec_elastic_b))
   allocate(tti_thom_theta_kl(NGLLX,NGLLZ,nspec_elastic_b))
+
+  allocate(tti_vel_rhop_kl(NGLLX,NGLLZ,nspec_elastic_b))
+  allocate(tti_vel_alpha_kl(NGLLX,NGLLZ,nspec_elastic_b))
+  allocate(tti_vel_beta_kl(NGLLX,NGLLZ,nspec_elastic_b))
+  allocate(tti_vel_alphah_kl(NGLLX,NGLLZ,nspec_elastic_b))
+  allocate(tti_vel_alphan_kl(NGLLX,NGLLZ,nspec_elastic_b))
+  allocate(tti_vel_theta_kl(NGLLX,NGLLZ,nspec_elastic_b))
 
   ! Attenuation kernels
   allocate(Qalpha_kl(NGLLX,NGLLZ,nspec_elastic_b))

@@ -251,6 +251,8 @@ integer i,j,ispec,k,iglob,irec,i_source,ispecabs, irecloc
       allocate(Nsqext(NGLLX,NGLLZ,nspec))
       allocate(QKappa_attenuationext(NGLLX,NGLLZ,nspec))
       allocate(Qmu_attenuationext(NGLLX,NGLLZ,nspec))
+      allocate(Qalpha_attenuationext(NGLLX,NGLLZ,nspec))
+      allocate(Qbeta_attenuationext(NGLLX,NGLLZ,nspec))
       allocate(c11ext(NGLLX,NGLLZ,nspec))
       allocate(c13ext(NGLLX,NGLLZ,nspec))
       allocate(c15ext(NGLLX,NGLLZ,nspec))
@@ -279,6 +281,8 @@ integer i,j,ispec,k,iglob,irec,i_source,ispecabs, irecloc
       allocate(Nsqext(1,1,1))
       allocate(QKappa_attenuationext(1,1,1))
       allocate(Qmu_attenuationext(1,1,1))
+      allocate(Qalpha_attenuationext(1,1,1))
+      allocate(Qbeta_attenuationext(1,1,1))
       allocate(c11ext(1,1,1))
       allocate(c13ext(1,1,1))
       allocate(c15ext(1,1,1))
@@ -288,6 +292,17 @@ integer i,j,ispec,k,iglob,irec,i_source,ispecabs, irecloc
       allocate(c12ext(1,1,1))
       allocate(c23ext(1,1,1))
       allocate(c25ext(1,1,1))
+      allocate(c11uext(1,1,1))
+      allocate(c13uext(1,1,1))
+      allocate(c33uext(1,1,1))
+      allocate(c55uext(1,1,1))
+      allocate(thetaext(1,1,1))
+      allocate(m1ext(1,1,1))
+      allocate(m2ext(1,1,1))
+      allocate(m3ext(1,1,1))
+      allocate(m4ext(1,1,1))
+      allocate(m5ext(1,1,1))
+      allocate(m6ext(1,1,1))
     endif
 
 !
@@ -1177,6 +1192,13 @@ integer i,j,ispec,k,iglob,irec,i_source,ispecabs, irecloc
       allocate(pdh_tti_thom_rhop(NGLLX,NGLLZ,nspec))
       allocate(pdh_tti_thom_theta(NGLLX,NGLLZ,nspec))
 
+      allocate(pdh_tti_vel_alpha(NGLLX,NGLLZ,nspec))
+      allocate(pdh_tti_vel_beta(NGLLX,NGLLZ,nspec))
+      allocate(pdh_tti_vel_alphah(NGLLX,NGLLZ,nspec))
+      allocate(pdh_tti_vel_alphan(NGLLX,NGLLZ,nspec))
+      allocate(pdh_tti_vel_rhop(NGLLX,NGLLZ,nspec))
+      allocate(pdh_tti_vel_theta(NGLLX,NGLLZ,nspec))
+
       allocate(pdh_tti_ec_c11_temp(nglob))
       allocate(pdh_tti_ec_c13_temp(nglob))
       allocate(pdh_tti_ec_c15_temp(nglob))
@@ -1198,6 +1220,13 @@ integer i,j,ispec,k,iglob,irec,i_source,ispecabs, irecloc
       allocate(pdh_tti_thom_delta_temp(nglob))
       allocate(pdh_tti_thom_rhop_temp(nglob))
       allocate(pdh_tti_thom_theta_temp(nglob))
+
+      allocate(pdh_tti_vel_alpha_temp(nglob))
+      allocate(pdh_tti_vel_beta_temp(nglob))
+      allocate(pdh_tti_vel_alphah_temp(nglob))
+      allocate(pdh_tti_vel_alphan_temp(nglob))
+      allocate(pdh_tti_vel_rhop_temp(nglob))
+      allocate(pdh_tti_vel_theta_temp(nglob))
 
       allocate(pdh_tti_ec_c11_temp1(nglob))
       allocate(pdh_tti_ec_c13_temp1(nglob))
@@ -1346,6 +1375,13 @@ integer i,j,ispec,k,iglob,irec,i_source,ispecabs, irecloc
       allocate(tti_thom_epsilon_kl(NGLLX,NGLLZ,nspec)) !PWY
       allocate(tti_thom_delta_kl(NGLLX,NGLLZ,nspec)) !PWY 
       allocate(tti_thom_theta_kl(NGLLX,NGLLZ,nspec)) !PWY 
+
+      allocate(tti_vel_rhop_kl(NGLLX,NGLLZ,nspec)) !PWY
+      allocate(tti_vel_alpha_kl(NGLLX,NGLLZ,nspec)) !PWY
+      allocate(tti_vel_beta_kl(NGLLX,NGLLZ,nspec)) !PWY
+      allocate(tti_vel_alphah_kl(NGLLX,NGLLZ,nspec)) !PWY
+      allocate(tti_vel_alphan_kl(NGLLX,NGLLZ,nspec)) !PWY
+      allocate(tti_vel_theta_kl(NGLLX,NGLLZ,nspec)) !PWY
 
       allocate(tti_rhopl_global(nglob)) ! PWY
       allocate(tti_alphal_global(nglob)) ! PWY
@@ -2601,6 +2637,8 @@ if(coupled_elastic_poro) then
   allocate(rho_vs(NGLLX,NGLLZ,nspec))
   allocate(QKappastore(NGLLX,NGLLZ,nspec)) !YY
   allocate(Qmustore(NGLLX,NGLLZ,nspec)) !YY
+  allocate(Qalphastore(NGLLX,NGLLZ,nspec)) !PWY
+  allocate(Qbetastore(NGLLX,NGLLZ,nspec)) !PWY
   allocate(c11store(NGLLX,NGLLZ,nspec))
   allocate(c13store(NGLLX,NGLLZ,nspec))
   allocate(c15store(NGLLX,NGLLZ,nspec))
@@ -2624,6 +2662,14 @@ do ispec=1,nspec
               kappastore(i,j,ispec)  = rho_vp(i,j,ispec) * vpext(i,j,ispec)-TWO*TWO*mustore(i,j,ispec)/3._CUSTOM_REAL
               QKappastore(i,j,ispec) = QKappa_attenuationext(i,j,ispec)  !YY
               Qmustore(i,j,ispec) = Qmu_attenuationext(i,j,ispec)  !YY
+
+              Qalpha_attenuationext(i,j,ispec)=QKappastore(i,j,ispec)*vpext(i,j,ispec)*vpext(i,j,ispec)*Qmustore(i,j,ispec)/&
+                  ((vpext(i,j,ispec)**2-vsext(i,j,ispec)**2)*Qmustore(i,j,ispec)+QKappastore(i,j,ispec)*vsext(i,j,ispec)**2)
+
+              Qbeta_attenuationext(i,j,ispec)=Qmu_attenuationext(i,j,ispec)
+
+              Qalphastore(i,j,ispec)=Qalpha_attenuationext(i,j,ispec)
+              Qbetastore(i,j,ispec)=Qbeta_attenuationext(i,j,ispec)
               c11store(i,j,ispec) = c11ext(i,j,ispec)  !PWY
               c13store(i,j,ispec) = c13ext(i,j,ispec)  !PWY
               c15store(i,j,ispec) = c15ext(i,j,ispec)  !PWY

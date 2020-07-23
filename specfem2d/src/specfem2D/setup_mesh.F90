@@ -558,6 +558,8 @@
            Nsqext(NGLLX,NGLLZ,nspec_ext), &
            QKappa_attenuationext(NGLLX,NGLLZ,nspec_ext), &
            Qmu_attenuationext(NGLLX,NGLLZ,nspec_ext), &
+           Qalpha_attenuationext(NGLLX,NGLLZ,nspec_ext), &
+           Qbeta_attenuationext(NGLLX,NGLLZ,nspec_ext), &
            c11ext(NGLLX,NGLLZ,nspec_ext), &
            c13ext(NGLLX,NGLLZ,nspec_ext), &
            c15ext(NGLLX,NGLLZ,nspec_ext), &

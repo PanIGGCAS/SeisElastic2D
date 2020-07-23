@@ -179,7 +179,10 @@
   read(IIN,*) use_binary_for_wavefield_dumps
 
   read(IIN,"(a80)") datlin
-  read(IIN,*) ATTENUATION_VISCOELASTIC_SOLID,ATTENUATION_PORO_FLUID_PART
+  read(IIN,*) ATTENUATION_VISCOELASTIC_SOLID,Q_KL_TROMP,ATTENUATION_PORO_FLUID_PART ! PWY
+
+  read(IIN,"(a80)") datlin
+  read(IIN,'(a100)') Q_KL
 
   read(IIN,"(a80)") datlin
   read(IIN,*) save_ASCII_seismograms
@@ -201,6 +204,12 @@
 
   read(IIN,"(a80)") datlin
   read(IIN,*) p_sv
+
+  read(IIN,"(a80)") datlin
+  read(IIN,*) TOPO_MASK
+
+  read(IIN,"(a80)") datlin
+  read(IIN,*) TOPO_VP
 
   read(IIN,"(a80)") datlin
   read(IIN,*) factor_subsample_image
