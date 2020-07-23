@@ -64,14 +64,20 @@ module specfem_par
   !---------------------------------------------------------------------
   !for model description
   !---------------------------------------------------------------------
-  character(len=100) :: MODEL, SAVE_MODEL, M_PAR ! added by PWY 14-01-2018
+  character(len=100) :: MODEL, SAVE_MODEL, M_PAR, Q_KL ! added by PWY 14-01-2018
   integer :: SIMULATION_TYPE  ! 1 = forward wavefield, 3 = backward and adjoint wavefields and kernels
   logical :: p_sv   ! for P-SV or SH (membrane) waves calculation
   logical :: SAVE_FORWARD ! whether or not the last frame is saved to reconstruct the forward field
   logical :: UNDO_ATTENUATION !for adjoint inversion with attenuation
   integer :: NT_DUMP_ATTENUATION
   logical :: ANISO ! PWY use anisotropy or not
-
+  logical :: ATT ! Attenuation or not
+  logical :: Q_KL_TROMP ! PWY use tromp's method for Q kernel calculation or not
+  logical :: Q_KL_CHAR
+  logical :: Q_KL_FICH
+  logical :: TOPO_MASK ! PWY produce mask function with complex topography
+  integer :: TOPO_VP
+  
   ! add a small crack (discontinuity) in the medium manually
   logical, parameter :: ADD_A_SMALL_CRACK_IN_THE_MEDIUM = .false.
   !! must be set equal to the number of spectral elements on one vertical side of the crack
@@ -92,6 +98,7 @@ module specfem_par
   logical, dimension(:), allocatable :: already_shifted_velocity
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: vpext,vsext,rhoext,gravityext,Nsqext
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: QKappa_attenuationext,Qmu_attenuationext
+  real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: Qalpha_attenuationext,Qbeta_attenuationext
 
   ! anisotropy parameters
   logical :: all_anisotropic
@@ -462,8 +469,8 @@ module specfem_par
   real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: veloc_elastic_initial_rk,displ_elastic_initial_rk
 
   ! variable for viscoelastic medium (also shared by solid in poroelastic-simulation)
-  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: e1,e11,e13
-  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: b_e1,b_e11,b_e13 !for undo_attenuation
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: e1,e11,e13,e1_x,e1_z
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: b_e1,b_e11,b_e13,b_e1_x,b_e1_z !for undo_attenuation
   real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: e1_LDDRK,e11_LDDRK,e13_LDDRK
   real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: e1_initial_rk,e11_initial_rk,e13_initial_rk
   real(kind=CUSTOM_REAL), dimension(:,:,:,:,:), allocatable :: e1_force_rk,e11_force_rk,e13_force_rk
@@ -682,6 +689,9 @@ module specfem_par
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: tti_thom_alpha_kl,tti_thom_beta_kl,tti_thom_epsilon_kl
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: tti_thom_delta_kl,tti_thom_theta_kl,tti_thom_rhop_kl
 
+  real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: tti_vel_alpha_kl,tti_vel_beta_kl,tti_vel_alphah_kl
+  real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: tti_vel_alphan_kl,tti_vel_theta_kl,tti_vel_rhop_kl
+
   !!! VTI and HTI
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: hti_ec_c11_kl,hti_ec_c13_kl,hti_ec_c33_kl
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: hti_ec_c55_kl,hti_ec_rho_kl
@@ -735,6 +745,9 @@ module specfem_par
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: pdh_hti_vel_alpha, pdh_hti_vel_beta, pdh_hti_vel_rhop
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: pdh_hti_vel_alphah, pdh_hti_vel_alphan
 
+  real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: pdh_tti_vel_alpha, pdh_tti_vel_beta, pdh_tti_vel_rhop
+  real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: pdh_tti_vel_alphah, pdh_tti_vel_alphan, pdh_tti_vel_theta
+
   !!! Diagonal pseudo-Hessian temp
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: pdh_vp_temp, pdh_vs_temp, pdh_rhop_temp
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: pdh_kappa_temp, pdh_mu_temp, pdh_rho_temp
@@ -763,6 +776,9 @@ module specfem_par
 
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: pdh_tti_thom_alpha_temp,pdh_tti_thom_beta_temp, pdh_tti_thom_rhop_temp
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: pdh_tti_thom_epsilon_temp, pdh_tti_thom_delta_temp, pdh_tti_thom_theta_temp
+
+  real(kind=CUSTOM_REAL), dimension(:), allocatable :: pdh_tti_vel_alpha_temp, pdh_tti_vel_beta_temp, pdh_tti_vel_rhop_temp
+  real(kind=CUSTOM_REAL), dimension(:), allocatable :: pdh_tti_vel_alphah_temp, pdh_tti_vel_alphan_temp, pdh_tti_vel_theta_temp
 
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: pdh_tti_ec_c11_temp1,pdh_tti_ec_c13_temp1,pdh_tti_ec_c15_temp1
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: pdh_tti_ec_c33_temp1,pdh_tti_ec_c35_temp1,pdh_tti_ec_c55_temp1
@@ -1099,6 +1115,7 @@ module specfem_par
   real(kind=CUSTOM_REAL) b_deltatf,b_deltatover2f,b_deltatsquareover2f
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: kappastore,mustore, rhostore
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: QKappastore,Qmustore !YY
+  real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: Qalphastore,Qbetastore
   !real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: c11store,c13store,c15store !PWY
   !real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: c33store,c35store,c55store !PWY
   !real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: c12store,c23store,c25store !PWY

@@ -80,7 +80,10 @@ subroutine save_adjoint_kernels()
                           pdh_tti_ecu_c11, pdh_tti_ecu_c13, pdh_tti_ecu_c33, pdh_tti_ecu_c55,pdh_tti_ecu_theta,pdh_tti_ecu_rho,&
                           tti_thom_alpha_kl,tti_thom_beta_kl,tti_thom_epsilon_kl,tti_thom_delta_kl,tti_thom_rhop_kl,tti_thom_theta_kl,&
                           pdh_tti_thom_alpha,pdh_tti_thom_beta,pdh_tti_thom_epsilon,pdh_tti_thom_delta,&
-                          pdh_tti_thom_theta,pdh_tti_thom_rhop
+                          pdh_tti_thom_theta,pdh_tti_thom_rhop,&
+                          tti_vel_alpha_kl,tti_vel_beta_kl,tti_vel_alphah_kl,tti_vel_alphan_kl,tti_vel_rhop_kl,tti_vel_theta_kl,&
+                          pdh_tti_vel_alpha,pdh_tti_vel_beta,pdh_tti_vel_alphah,pdh_tti_vel_alphan,&
+                          pdh_tti_vel_theta,pdh_tti_vel_rhop
 
   include "constants.h"
 
@@ -253,6 +256,32 @@ subroutine save_adjoint_kernels()
       close(330)
       close(331)
      endif
+     if ((trim(M_PAR) == 'ttivel')) then
+      write(334)tti_vel_alpha_kl
+      write(335)tti_vel_beta_kl
+      write(336)tti_vel_alphah_kl
+      write(337)tti_vel_alphan_kl
+      write(338)tti_vel_theta_kl
+      write(339)tti_vel_rhop_kl
+      write(340)pdh_tti_vel_alpha
+      write(341)pdh_tti_vel_beta
+      write(342)pdh_tti_vel_alphah
+      write(343)pdh_tti_vel_alphan
+      write(344)pdh_tti_vel_theta
+      write(345)pdh_tti_vel_rhop
+      close(334)
+      close(335)
+      close(336)
+      close(337)
+      close(338)
+      close(339)
+      close(340)
+      close(341)
+      close(342)
+      close(343)
+      close(344)
+      close(345)    
+     endif
      if ((trim(M_PAR) == 'htithom' .OR. trim(M_PAR) == 'vtithom')) then
       write(221)hti_thom_rhop_kl
       write(222)hti_thom_alpha_kl
@@ -422,8 +451,12 @@ subroutine save_adjoint_kernels()
      endif
       write(210)Qkappa_kl
       write(211)Qmu_kl
+      write(332)Qalpha_kl
+      write(333)Qbeta_kl
       close(210)
       close(211)
+      close(332)
+      close(333)
 
       if (SAVE_DIAGONAL_HESSIAN) then
         write(214)rhorho_el_hessian_final1

@@ -354,6 +354,14 @@ subroutine prepare_timerun_kernel()
             open(unit = 211,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
             if (ios /= 0) stop 'Error writing kernel file to disk'
 
+            write(outputname,'(a,i6.6,a)') 'proc',myrank,'_Qalpha_kernel.bin'
+            open(unit = 332,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
+            if (ios /= 0) stop 'Error writing kernel file to disk'
+
+            write(outputname,'(a,i6.6,a)') 'proc',myrank,'_Qbeta_kernel.bin'
+            open(unit = 333,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
+            if (ios /= 0) stop 'Error writing kernel file to disk'
+
             write(outputname,'(a,i6.6,a)') 'proc',myrank,'_pdh_vp.bin'
             open(unit = 287,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
             if (ios /= 0) stop 'Error writing kernel file to disk'
@@ -664,6 +672,55 @@ subroutine prepare_timerun_kernel()
             open(unit = 331, file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted', iostat=ios)
             if (ios /= 0) stop 'Error writing kernel file to disk'
           endif
+          if (ANISO .and. (trim(M_PAR)=='ttivel') ) then
+            write(outputname,'(a,i6.6,a)') 'proc',myrank,'_tti_vel_alpha_kernel.bin'
+            open(unit = 334,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
+            if (ios /= 0) stop 'Error writing kernel file to disk'
+
+            write(outputname,'(a,i6.6,a)') 'proc',myrank,'_tti_vel_beta_kernel.bin'
+            open(unit = 335,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
+            if (ios /= 0) stop 'Error writing kernel file to disk'
+
+            write(outputname,'(a,i6.6,a)') 'proc',myrank,'_tti_vel_alphah_kernel.bin'
+            open(unit = 336,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
+            if (ios /= 0) stop 'Error writing kernel file to disk'
+
+            write(outputname,'(a,i6.6,a)') 'proc',myrank,'_tti_vel_alphan_kernel.bin'
+            open(unit = 337,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
+            if (ios /= 0) stop 'Error writing kernel file to disk'
+
+            write(outputname,'(a,i6.6,a)') 'proc',myrank,'_tti_vel_theta_kernel.bin'
+            open(unit = 338,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
+            if (ios /= 0) stop 'Error writing kernel file to disk'
+
+            write(outputname,'(a,i6.6,a)') 'proc',myrank,'_tti_vel_rhop_kernel.bin'
+            open(unit = 339,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
+            if (ios /= 0) stop 'Error writing kernel file to disk'
+
+            write(outputname,'(a,i6.6,a)') 'proc',myrank,'_pdh_tti_vel_alpha.bin'
+            open(unit = 340,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
+            if (ios /= 0) stop 'Error writing kernel file to disk'
+
+            write(outputname,'(a,i6.6,a)') 'proc',myrank,'_pdh_tti_vel_beta.bin'
+            open(unit = 341,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
+            if (ios /= 0) stop 'Error writing kernel file to disk'
+
+            write(outputname,'(a,i6.6,a)') 'proc',myrank,'_pdh_tti_vel_alphah.bin'
+            open(unit = 342,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
+            if (ios /= 0) stop 'Error writing kernel file to disk'
+
+            write(outputname,'(a,i6.6,a)') 'proc',myrank,'_pdh_tti_vel_alphan.bin'
+            open(unit = 343,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
+            if (ios /= 0) stop 'Error writing kernel file to disk'
+
+            write(outputname,'(a,i6.6,a)') 'proc',myrank,'_pdh_tti_vel_theta.bin'
+            open(unit = 344,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
+            if (ios /= 0) stop 'Error writing kernel file to disk'
+
+            write(outputname,'(a,i6.6,a)') 'proc',myrank,'_pdh_tti_vel_rhop.bin'
+            open(unit = 345,file='OUTPUT_FILES/'//outputname,status='unknown',action='write',form='unformatted',iostat=ios)
+            if (ios /= 0) stop 'Error writing kernel file to disk'
+          endif          
           !!! write hti media kernels PWY 
           if (ANISO .and. (trim(M_PAR)=='htiec' .OR. trim(M_PAR)=='vtiec') ) then
             write(outputname,'(a,i6.6,a)') 'proc',myrank,'_hti_ec_rho_kernel.bin'
@@ -906,6 +963,13 @@ subroutine prepare_timerun_kernel()
       tti_thom_delta_kl(:,:,:) = 0._CUSTOM_REAL
       tti_thom_theta_kl(:,:,:) = 0._CUSTOM_REAL       
 
+      tti_vel_rhop_kl(:,:,:) = 0._CUSTOM_REAL
+      tti_vel_alpha_kl(:,:,:) = 0._CUSTOM_REAL
+      tti_vel_beta_kl(:,:,:) = 0._CUSTOM_REAL
+      tti_vel_alphah_kl(:,:,:) = 0._CUSTOM_REAL
+      tti_vel_alphan_kl(:,:,:) = 0._CUSTOM_REAL
+      tti_vel_theta_kl(:,:,:) = 0._CUSTOM_REAL
+
       hti_ec_rho_kl(:,:,:) = 0._CUSTOM_REAL
       hti_ec_c11_kl(:,:,:) = 0._CUSTOM_REAL
       hti_ec_c13_kl(:,:,:) = 0._CUSTOM_REAL
@@ -1024,6 +1088,13 @@ subroutine prepare_timerun_kernel()
       pdh_tti_thom_delta(:,:,:) = 0._CUSTOM_REAL
       pdh_tti_thom_theta(:,:,:) = 0._CUSTOM_REAL
 
+      pdh_tti_vel_alpha(:,:,:) = 0._CUSTOM_REAL
+      pdh_tti_vel_beta(:,:,:) = 0._CUSTOM_REAL
+      pdh_tti_vel_rhop(:,:,:) = 0._CUSTOM_REAL
+      pdh_tti_vel_alphah(:,:,:) = 0._CUSTOM_REAL
+      pdh_tti_vel_alphan(:,:,:) = 0._CUSTOM_REAL
+      pdh_tti_vel_theta(:,:,:) = 0._CUSTOM_REAL
+
       pdh_tti_ec_c11_temp(:) = 0._CUSTOM_REAL
       pdh_tti_ec_c13_temp(:) = 0._CUSTOM_REAL
       pdh_tti_ec_c15_temp(:) = 0._CUSTOM_REAL
@@ -1045,6 +1116,13 @@ subroutine prepare_timerun_kernel()
       pdh_tti_thom_delta_temp(:) = 0._CUSTOM_REAL
       pdh_tti_thom_rhop_temp(:) = 0._CUSTOM_REAL
       pdh_tti_thom_theta_temp(:) = 0._CUSTOM_REAL
+
+      pdh_tti_vel_alpha_temp(:) = 0._CUSTOM_REAL
+      pdh_tti_vel_beta_temp(:) = 0._CUSTOM_REAL
+      pdh_tti_vel_alphah_temp(:) = 0._CUSTOM_REAL
+      pdh_tti_vel_alphan_temp(:) = 0._CUSTOM_REAL
+      pdh_tti_vel_rhop_temp(:) = 0._CUSTOM_REAL
+      pdh_tti_vel_theta_temp(:) = 0._CUSTOM_REAL
 
       pdh_tti_ec_c11_temp1(:) = 0._CUSTOM_REAL
       pdh_tti_ec_c13_temp1(:) = 0._CUSTOM_REAL
@@ -1902,10 +1980,14 @@ subroutine prepare_timerun_read()
     allocate(e1(NGLLX,NGLLZ,nspec_allocate,N_SLS))
     allocate(e11(NGLLX,NGLLZ,nspec_allocate,N_SLS))
     allocate(e13(NGLLX,NGLLZ,nspec_allocate,N_SLS))
+    allocate(e1_x(NGLLX,NGLLZ,nspec_allocate,N_SLS))
+    allocate(e1_z(NGLLX,NGLLZ,nspec_allocate,N_SLS))
 
     e1(:,:,:,:) = 0._CUSTOM_REAL
     e11(:,:,:,:) = 0._CUSTOM_REAL
     e13(:,:,:,:) = 0._CUSTOM_REAL
+    e1_x(:,:,:,:) = 0._CUSTOM_REAL
+    e1_z(:,:,:,:) = 0._CUSTOM_REAL
 
     if(time_stepping_scheme == 2)then
       allocate(e1_LDDRK(NGLLX,NGLLZ,nspec_allocate,N_SLS))

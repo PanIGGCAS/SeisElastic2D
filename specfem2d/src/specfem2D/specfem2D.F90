@@ -365,7 +365,8 @@
   call prepare_timerun()
 
   if( undo_attenuation ) then
-    call iterate_time_undoatt()
+    ! call iterate_time_undoatt()
+    call iterate_time_undoatt_kl() ! modified by PWY for Q inversion
   else
     call iterate_time()
   endif

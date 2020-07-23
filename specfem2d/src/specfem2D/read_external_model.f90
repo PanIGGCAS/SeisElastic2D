@@ -55,7 +55,7 @@
                          MODEL,ANISO,ATTENUATION_VISCOELASTIC_SOLID,p_sv,&
                          inputname,ios,tomo_material, myrank, ANISO, M_PAR,&
                          c11uext,c13uext,c33uext,c55uext,thetaext,&
-                         m1ext,m2ext,m3ext,m4ext,m5ext,m6ext
+                         m1ext,m2ext,m3ext,m4ext,m5ext,m6ext,Qalpha_attenuationext,Qbeta_attenuationext
 
   implicit none
   include "constants.h"
@@ -84,6 +84,8 @@
   real(kind=4),dimension(:,:,:),allocatable :: tti_thom_vpext, tti_thom_vsext, tti_thom_epsilonext
   real(kind=4),dimension(:,:,:),allocatable :: tti_thom_deltaext, tti_thom_rhopext, tti_thom_thetaext
 
+  real(kind=4),dimension(:,:,:),allocatable :: tti_vel_vpext, tti_vel_vsext, tti_vel_vphext
+  real(kind=4),dimension(:,:,:),allocatable :: tti_vel_vpnext, tti_vel_rhopext, tti_vel_thetaext
 
   if (ANISO .and. (trim(M_PAR)=='htithom' .OR. trim(M_PAR)=='vtithom')) then
    allocate(hti_thom_rhopext(NGLLX,NGLLZ,nspec))
@@ -93,13 +95,19 @@
    allocate(hti_thom_deltaext(NGLLX,NGLLZ,nspec)) 
   endif
 
-  if (ANISO .and. (trim(M_PAR)=='ttithom')) then
+  if (ANISO .and. (trim(M_PAR)=='ttithom' .OR. trim(M_PAR)=='ttivel')) then
    allocate(tti_thom_rhopext(NGLLX,NGLLZ,nspec))
    allocate(tti_thom_vpext(NGLLX,NGLLZ,nspec))
    allocate(tti_thom_vsext(NGLLX,NGLLZ,nspec))
    allocate(tti_thom_epsilonext(NGLLX,NGLLZ,nspec))
    allocate(tti_thom_deltaext(NGLLX,NGLLZ,nspec))
    allocate(tti_thom_thetaext(NGLLX,NGLLZ,nspec))
+   allocate(tti_vel_rhopext(NGLLX,NGLLZ,nspec))
+   allocate(tti_vel_vpext(NGLLX,NGLLZ,nspec))
+   allocate(tti_vel_vsext(NGLLX,NGLLZ,nspec))
+   allocate(tti_vel_vphext(NGLLX,NGLLZ,nspec))
+   allocate(tti_vel_vpnext(NGLLX,NGLLZ,nspec))
+   allocate(tti_vel_thetaext(NGLLX,NGLLZ,nspec))
   endif
 
   if (ANISO .and. (trim(M_PAR)=='htithom2' .OR. trim(M_PAR)=='vtithom2')) then
@@ -155,6 +163,8 @@
           read(1001,*) tmp1,tmp2,tmp3,rhoext(i,j,ispec),vpext(i,j,ispec),vsext(i,j,ispec)
           QKappa_attenuationext(i,j,ispec) = 9999.d0
           Qmu_attenuationext(i,j,ispec) = 9999.d0
+          Qalpha_attenuationext(i,j,ispec) = 9999.d0 ! PWY
+          Qbeta_attenuationext(i,j,ispec) = 9999.d0 ! PWY
         enddo
       enddo
     enddo
@@ -171,6 +181,8 @@
           read(1001,*) tmp1,tmp2,rhoext(i,j,ispec),vpext(i,j,ispec),vsext(i,j,ispec)
           QKappa_attenuationext(i,j,ispec) = 9999.d0
           Qmu_attenuationext(i,j,ispec) = 9999.d0
+          Qalpha_attenuationext(i,j,ispec) = 9999.d0 ! PWY
+          Qbeta_attenuationext(i,j,ispec) = 9999.d0 ! PWY
         enddo
       enddo
     enddo
@@ -732,6 +744,133 @@
 
     endif
 
+    if (ANISO .and. (trim(M_PAR)=='ttivel')) then
+      write(inputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_tti_vel_vp.bin'
+      open(unit = 1001, file = inputname, status='old',action='read',form='unformatted', iostat=ios)
+      if (ios /= 0) stop 'Error opening tti_vel_vp.bin file.'
+
+      read(1001) tti_vel_vpext
+      close(1001)
+
+      write(inputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_tti_vel_vs.bin'
+      open(unit = 1001, file = inputname, status='old',action='read',form='unformatted', iostat=ios)
+      if (ios /= 0) stop 'Error opening tti_vel_vs.bin file.'
+
+      read(1001) tti_vel_vsext
+      close(1001)
+
+      write(inputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_tti_vel_rhop.bin'
+      open(unit = 1001, file = inputname, status='old',action='read',form='unformatted', iostat=ios)
+      if (ios /= 0) stop 'Error opening tti_vel_rhop.bin file.'
+
+      read(1001) tti_vel_rhopext
+      close(1001)
+
+      write(inputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_tti_vel_vph.bin'
+      open(unit = 1001, file = inputname, status='old',action='read',form='unformatted', iostat=ios)
+      if (ios /= 0) stop 'Error opening tti_vel_vph.bin file.'
+
+      read(1001) tti_vel_vphext
+      close(1001)
+
+      write(inputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_tti_vel_vpn.bin'
+      open(unit = 1001, file = inputname, status='old',action='read',form='unformatted', iostat=ios)
+      if (ios /= 0) stop 'Error opening tti_vel_vpn.bin file.'
+
+      read(1001) tti_vel_vpnext
+      close(1001)
+
+      write(inputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_theta.bin'
+      open(unit = 1001, file = inputname, status='old',action='read',form='unformatted', iostat=ios)
+      if (ios /= 0) stop 'Error opening tti_vel_delta.bin file.'
+
+      read(1001) thetaext
+      close(1001)
+
+      do ispec = 1,nspec
+        do j = 1,NGLLZ
+          do i = 1,NGLLX
+            iglob = ibool(i,j,ispec)
+            tti_thom_rhopext(i,j,ispec)=tti_vel_rhopext(i,j,ispec)
+            tti_thom_vpext(i,j,ispec)=tti_vel_vpext(i,j,ispec)
+            tti_thom_vsext(i,j,ispec)=tti_vel_vsext(i,j,ispec)
+
+            tti_thom_epsilonext(i,j,ispec)=(tti_vel_vphext(i,j,ispec)**2-tti_vel_vpext(i,j,ispec)**2)/&
+              (2._CUSTOM_REAL*tti_vel_vpext(i,j,ispec)**2)
+
+            tti_thom_deltaext(i,j,ispec)=(tti_vel_vpnext(i,j,ispec)**2-tti_vel_vpext(i,j,ispec)**2)/&
+              (2._CUSTOM_REAL*tti_vel_vpext(i,j,ispec)**2)
+
+            c11uext(i,j,ispec) = tti_thom_rhopext(i,j,ispec)*tti_thom_vpext(i,j,ispec)**2*&
+              (2._CUSTOM_REAL*tti_thom_epsilonext(i,j,ispec)+1._CUSTOM_REAL)
+
+            c13uext(i,j,ispec) = SQRT(2._CUSTOM_REAL*tti_thom_rhopext(i,j,ispec)*&
+            tti_thom_deltaext(i,j,ispec)*tti_thom_vpext(i,j,ispec)**2*(tti_thom_rhopext(i,j,ispec)*&
+            tti_thom_vpext(i,j,ispec)**2-tti_thom_rhopext(i,j,ispec)*tti_thom_vsext(i,j,ispec)**2)+&
+            (tti_thom_rhopext(i,j,ispec)*tti_thom_vpext(i,j,ispec)**2-&
+            tti_thom_rhopext(i,j,ispec)*tti_thom_vsext(i,j,ispec)**2)**2)-&
+            tti_thom_rhopext(i,j,ispec)*tti_thom_vsext(i,j,ispec)**2
+
+            c33uext(i,j,ispec) = tti_thom_rhopext(i,j,ispec)*tti_thom_vpext(i,j,ispec)**2
+
+            c55uext(i,j,ispec) = tti_thom_rhopext(i,j,ispec)*tti_thom_vsext(i,j,ispec)**2
+
+            m1ext(i,j,ispec) = (3._CUSTOM_REAL + 4._CUSTOM_REAL * COS(2._CUSTOM_REAL*thetaext(i,j,ispec)) + &
+                               COS(4._CUSTOM_REAL * thetaext(i,j,ispec)))
+
+            m2ext(i,j,ispec) = (1._CUSTOM_REAL - COS(4._CUSTOM_REAL*thetaext(i,j,ispec)))
+
+            m3ext(i,j,ispec) = (3._CUSTOM_REAL - 4._CUSTOM_REAL * COS(2._CUSTOM_REAL*thetaext(i,j,ispec)) + &
+                               COS(4._CUSTOM_REAL * thetaext(i,j,ispec)))
+
+            m4ext(i,j,ispec) = SIN(4._CUSTOM_REAL*thetaext(i,j,ispec))
+
+            m5ext(i,j,ispec) = SIN(2._CUSTOM_REAL*thetaext(i,j,ispec)) + SIN(4._CUSTOM_REAL*thetaext(i,j,ispec))
+
+            m6ext(i,j,ispec) = 6._CUSTOM_REAL + 2._CUSTOM_REAL * COS(4._CUSTOM_REAL*thetaext(i,j,ispec))
+
+            c11ext(i,j,ispec) = m1ext(i,j,ispec) * c11uext(i,j,ispec) / 8._CUSTOM_REAL + &
+                  2._CUSTOM_REAL * m2ext(i,j,ispec) * c13uext(i,j,ispec) / 8._CUSTOM_REAL + &
+                  m3ext(i,j,ispec) * c33uext(i,j,ispec) / 8._CUSTOM_REAL + &
+                  4._CUSTOM_REAL * m2ext(i,j,ispec) * c55uext(i,j,ispec)/8._CUSTOM_REAL
+
+            c13ext(i,j,ispec) = m2ext(i,j,ispec) * c11uext(i,j,ispec) / 8._CUSTOM_REAL + &
+                  m6ext(i,j,ispec) * c13uext(i,j,ispec) / 8._CUSTOM_REAL + &
+                  m2ext(i,j,ispec) * c33uext(i,j,ispec) / 8._CUSTOM_REAL - &
+                  4._CUSTOM_REAL * m2ext(i,j,ispec) * c55uext(i,j,ispec)/8._CUSTOM_REAL
+
+            c15ext(i,j,ispec) = (m5ext(i,j,ispec) * c11uext(i,j,ispec))/4._CUSTOM_REAL - &
+                  2._CUSTOM_REAL * m4ext(i,j,ispec) * c13uext(i,j,ispec)/4._CUSTOM_REAL + &
+                  (2._CUSTOM_REAL * m4ext(i,j,ispec) - m5ext(i,j,ispec)) * c33uext(i,j,ispec)/4._CUSTOM_REAL - &
+                  4._CUSTOM_REAL * m4ext(i,j,ispec) * c55uext(i,j,ispec)/4._CUSTOM_REAL
+
+            c33ext(i,j,ispec) = m3ext(i,j,ispec) * c11uext(i,j,ispec) / 8._CUSTOM_REAL + &
+                  2._CUSTOM_REAL * m2ext(i,j,ispec) * c13uext(i,j,ispec) / 8._CUSTOM_REAL + &
+                  m1ext(i,j,ispec) * c33uext(i,j,ispec) / 8._CUSTOM_REAL + &
+                  4._CUSTOM_REAL * m2ext(i,j,ispec) * c55uext(i,j,ispec)/8._CUSTOM_REAL
+
+            c35ext(i,j,ispec) = (m5ext(i,j,ispec) - 2._CUSTOM_REAL * m4ext(i,j,ispec)) * c11uext(i,j,ispec)/4._CUSTOM_REAL + &
+                  2._CUSTOM_REAL * m4ext(i,j,ispec) * c13uext(i,j,ispec)/4._CUSTOM_REAL - &
+                  m5ext(i,j,ispec) * c33uext(i,j,ispec)/4._CUSTOM_REAL + &
+                  4._CUSTOM_REAL * m4ext(i,j,ispec) * c55uext(i,j,ispec)/4._CUSTOM_REAL
+
+            c55ext(i,j,ispec) = m2ext(i,j,ispec) * c11uext(i,j,ispec) / 8._CUSTOM_REAL - &
+                  m2ext(i,j,ispec) * c13uext(i,j,ispec) / 4._CUSTOM_REAL  + &
+                  m2ext(i,j,ispec) * c33uext(i,j,ispec) / 8._CUSTOM_REAL + &
+                  4._CUSTOM_REAL * (2._CUSTOM_REAL - m2ext(i,j,ispec)) * c55uext(i,j,ispec)/8._CUSTOM_REAL
+
+            c12ext(i,j,ispec) = 0.0d0
+            c23ext(i,j,ispec) = 0.0d0
+            c25ext(i,j,ispec) = 0.0d0
+            vsext(i,j,ispec) = tti_thom_vsext(i,j,ispec)
+            vpext(i,j,ispec) = tti_thom_vpext(i,j,ispec)
+            rhoext(i,j,ispec) = tti_thom_rhopext(i,j,ispec)
+          enddo
+        enddo
+      enddo
+
+    endif
+
     if (ANISO .and. (trim(M_PAR)=='htiec' .OR. trim(M_PAR)=='vtiec')) then
       write(inputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_rho.bin'
       open(unit = 1001, file = inputname, status='old',action='read',form='unformatted', iostat=ios)
@@ -1018,22 +1157,36 @@
       enddo
     endif
     if (ATTENUATION_VISCOELASTIC_SOLID ) then !YY
-      !! input QKappa -- !YY
-          write(inputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_QKappa.bin'   
+      !! input Qalpha -- !PWY
+          write(inputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_Qalpha.bin'   
           open(unit = 1001, file = inputname,status='old',action='read',form='unformatted',iostat=ios)  
-          if (ios /= 0) stop 'Error opening Qmu.bin file.'
-          read(1001) QKappa_attenuationext
+          if (ios /= 0) stop 'Error opening Qalpha.bin file.'
+          read(1001) Qalpha_attenuationext
           close(1001)
 
-      !! input Qmu -- !YY
-          write(inputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_Qmu.bin'
+      !! input Qbeta -- !PWY
+          write(inputname,'(a,i6.6,a)') 'DATA/proc',myrank,'_Qbeta.bin'
           open(unit = 1001, file = inputname,status='old',action='read',form='unformatted', iostat=ios)
-          if (ios /= 0) stop 'Error opening Qmu.bin file.'
-          read(1001) Qmu_attenuationext
+          if (ios /= 0) stop 'Error opening Qbeta.bin file.'
+          read(1001) Qbeta_attenuationext
           close(1001)
+
+          do ispec = 1,nspec! PWY
+            do j = 1,NGLLZ
+              do i = 1,NGLLX
+                iglob = ibool(i,j,ispec)
+                Qmu_attenuationext(i,j,ispec) = Qbeta_attenuationext(i,j,ispec)
+                QKappa_attenuationext(i,j,ispec) = (vpext(i,j,ispec)**2-vsext(i,j,ispec)**2)*Qalpha_attenuationext(i,j,ispec)*&
+                    Qbeta_attenuationext(i,j,ispec)/(Qbeta_attenuationext(i,j,ispec)*vpext(i,j,ispec)**2-&
+                    Qalpha_attenuationext(i,j,ispec)*vsext(i,j,ispec)**2)
+              enddo
+            enddo
+          enddo
       else
           QKappa_attenuationext(:,:,:) = 9999.d0
           Qmu_attenuationext(:,:,:) = 9999.d0
+          Qbeta_attenuationext(:,:,:) = 9999.d0 ! PWY
+          Qalpha_attenuationext(:,:,:) = 9999.d0 ! PWY
       endif
 
   else if(trim(MODEL)=='external') then
@@ -1046,6 +1199,8 @@
       if(.not. ATTENUATION_VISCOELASTIC_SOLID) then
           QKappa_attenuationext(:,:,:) = 9999.d0
           Qmu_attenuationext(:,:,:) = 9999.d0
+          Qbeta_attenuationext(:,:,:) = 9999.d0 ! PWY
+          Qalpha_attenuationext(:,:,:) = 9999.d0 ! PWY
       endif
 
 

@@ -84,6 +84,7 @@ specfem2D_OBJECTS = \
 	$O/compute_coupling_poro_viscoelastic.spec.o \
 	$O/compute_add_sources_poro.spec.o \
 	$O/compute_forces_viscoelastic.spec.o \
+        $O/compute_forces_viscoelastic_kl.spec.o \
 	$O/compute_forces_viscoelastic_backward.spec.o \
 	$O/compute_coupling_viscoelastic_ac.spec.o \
 	$O/compute_coupling_viscoelastic_po.spec.o \
@@ -115,6 +116,7 @@ specfem2D_OBJECTS = \
 	$O/is_in_convex_quadrilateral.spec.o \
 	$O/iterate_time.spec.o \
 	$O/iterate_time_undoatt.spec.o \
+        $O/iterate_time_undoatt_kl.spec.o \
 	$O/lagrange_poly.spec.o \
 	$O/locate_receivers.spec.o \
 	$O/locate_source_force.spec.o \
@@ -341,6 +343,7 @@ $O/compute_forces_gravitoacoustic.spec.o: $O/specfem2D_par.spec.o
 $O/compute_forces_poro_fluid.spec.o: $O/specfem2D_par.spec.o
 $O/compute_forces_poro_solid.spec.o: $O/specfem2D_par.spec.o
 $O/compute_forces_viscoelastic.spec.o: $O/specfem2D_par.spec.o
+$O/compute_forces_viscoelastic_kl.spec.o: $O/specfem2D_par.spec.o
 $O/compute_forces_viscoelastic_backward.spec.o: $O/specfem2D_par.spec.o
 $O/compute_gradient_attenuation.spec.o: $O/specfem2D_par.spec.o
 $O/compute_kernels.spec.o: $O/specfem2D_par.spec.o
@@ -364,6 +367,7 @@ $O/initialize_simulation.spec.o: $O/specfem2D_par.spec.o
 $O/invert_mass_matrix.spec.o: $O/specfem2D_par.spec.o
 $O/iterate_time.spec.o: $O/specfem2D_par.spec.o
 $O/iterate_time_undoatt.spec.o: $O/specfem2D_par.spec.o
+$O/iterate_time_undoatt_kl.spec.o: $O/specfem2D_par.spec.o
 $O/locate_receivers.spec.o: $O/specfem2D_par.spec.o
 $O/noise_tomography.spec.o: $O/specfem2D_par.spec.o
 $O/paco_beyond_critical.spec.o: $O/specfem2D_par.spec.o

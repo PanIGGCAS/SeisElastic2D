@@ -117,7 +117,9 @@
 
   read(IIN) use_binary_for_wavefield_dumps
 
-  read(IIN) ATTENUATION_VISCOELASTIC,ATTENUATION_PORO_FLUID_PART
+  read(IIN) ATTENUATION_VISCOELASTIC,Q_KL_TROMP,ATTENUATION_PORO_FLUID_PART ! PWY added
+
+  read(IIN) Q_KL
 
   read(IIN) save_ASCII_seismograms
 
@@ -136,6 +138,10 @@
   read(IIN) AXISYM
 
   read(IIN) P_SV
+
+  read(IIN) TOPO_MASK
+
+  read(IIN) TOPO_VP
 
   read(IIN) factor_subsample_image
 
