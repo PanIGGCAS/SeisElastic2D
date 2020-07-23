@@ -121,7 +121,14 @@
                          tti_thom_alpha_kl,tti_thom_beta_kl,tti_thom_epsilon_kl,tti_thom_delta_kl,tti_thom_theta_kl,&
                          tti_thom_rhop_kl,pdh_tti_thom_alpha,pdh_tti_thom_beta,pdh_tti_thom_epsilon,pdh_tti_thom_delta,&
                          pdh_tti_thom_rhop,pdh_tti_thom_theta,pdh_tti_thom_alpha_temp,pdh_tti_thom_beta_temp,pdh_tti_thom_epsilon_temp,&
-                         pdh_tti_thom_delta_temp,pdh_tti_thom_rhop_temp,pdh_tti_thom_theta_temp
+                         pdh_tti_thom_delta_temp,pdh_tti_thom_rhop_temp,pdh_tti_thom_theta_temp,ATTENUATION_VISCOELASTIC_SOLID,&
+                         QKappa_attenuationext,Qmu_attenuationext,Qalpha_attenuationext,Qbeta_attenuationext,&
+                         tti_vel_alpha_kl,tti_vel_beta_kl,tti_vel_alphah_kl,tti_vel_alphan_kl,&
+                         tti_vel_theta_kl,tti_vel_rhop_kl,&
+                         pdh_tti_vel_alpha,pdh_tti_vel_beta,pdh_tti_vel_alphah,pdh_tti_vel_alphan,pdh_tti_vel_rhop,pdh_tti_vel_theta,&
+                         pdh_tti_vel_alpha_temp,pdh_tti_vel_beta_temp,pdh_tti_vel_alphah_temp,pdh_tti_vel_alphan_temp,pdh_tti_vel_rhop_temp,&
+                         pdh_tti_vel_theta_temp,e1,e11,e13,e1_x,e1_z,b_e1,b_e11,b_e13,N_SLS,Q_KL_TROMP,Q_KL_CHAR,Q_KL_FICH,Q_KL
+                         
 
   implicit none
   include "constants.h"
@@ -134,6 +141,11 @@
   real(kind=CUSTOM_REAL) :: b_dux_dxl,b_duy_dxl,b_duz_dxl,b_dux_dzl,b_duy_dzl,b_duz_dzl
   real(kind=CUSTOM_REAL) :: dsxx,dsxz,dszz
   real(kind=CUSTOM_REAL) :: b_dsxx,b_dsxz,b_dszz
+
+  real(kind=CUSTOM_REAL) :: e1_sum,e11_sum,e13_sum,e1_x_sum,e1_z_sum
+  real(kind=CUSTOM_REAL) :: lambdaplus2mu_att,lambda_att,mu_att,lambdaplusmu_att
+  real(kind=CUSTOM_REAL) :: sigma_xx_att,sigma_zz_att,sigma_xz_att
+  integer :: i_sls
 
   ! Jacobian matrix and determinant
   double precision :: xixl,xizl,gammaxl,gammazl
@@ -200,12 +212,65 @@
           b_dsxz = HALF * (b_duz_dxl + b_dux_dzl)
           b_dszz =  b_duz_dzl
 
-          kappa_k(iglob) = (dux_dxl + duz_dzl) *  (b_dux_dxl + b_duz_dzl)
-          mu_k(iglob) = dsxx * b_dsxx + dszz * b_dszz + &
+          if (.not. ATTENUATION_VISCOELASTIC_SOLID) then
+            kappa_k(iglob) = (dux_dxl + duz_dzl) *  (b_dux_dxl + b_duz_dzl)
+            mu_k(iglob) = dsxx * b_dsxx + dszz * b_dszz + &
                         2._CUSTOM_REAL * dsxz * b_dsxz - 1._CUSTOM_REAL/3._CUSTOM_REAL * kappa_k(iglob)
+          endif
           !!! ATTENUATION
-          Qkappa_k(iglob) = -kappa_k(iglob)
-          Qmu_k(iglob) = -mu_k(iglob)
+          e1_sum=0._CUSTOM_REAL
+          e11_sum=0._CUSTOM_REAL
+          e13_sum=0._CUSTOM_REAL
+          e1_x_sum=0._CUSTOM_REAL
+          e1_z_sum=0._CUSTOM_REAL
+          
+          lambdaplus2mu_att=0._CUSTOM_REAL
+          lambdaplusmu_att=0._CUSTOM_REAL
+          lambda_att=0._CUSTOM_REAL
+          mu_att=0._CUSTOM_REAL
+
+          sigma_xx_att=0._CUSTOM_REAL
+          sigma_zz_att=0._CUSTOM_REAL
+          sigma_xz_att=0._CUSTOM_REAL
+
+          if (ATTENUATION_VISCOELASTIC_SOLID) then
+            do i_sls = 1,N_SLS
+              e1_sum = e1_sum + e1(i,j,ispec,i_sls)
+              e11_sum = e11_sum + e11(i,j,ispec,i_sls)
+              e13_sum = e13_sum + e13(i,j,ispec,i_sls)
+              e1_x_sum = e1_x_sum + e1_x(i,j,ispec,i_sls)
+              e1_z_sum = e1_z_sum + e1_z(i,j,ispec,i_sls)
+            enddo
+            Qkappa_k(iglob) = - (b_dux_dxl + b_duz_dzl) * e1_sum
+            Qmu_k(iglob) = - b_dsxx * e1_x_sum - b_dszz * e1_z_sum - 2._CUSTOM_REAL * b_dsxz * e13_sum + &
+                            1._CUSTOM_REAL/3._CUSTOM_REAL * Qkappa_k(iglob)
+           
+            mu_att = rhoext(i,j,ispec)*vsext(i,j,ispec)*vsext(i,j,ispec)
+            lambdaplus2mu_att = rhoext(i,j,ispec)*vpext(i,j,ispec)*vpext(i,j,ispec)
+            lambda_att = lambdaplus2mu_att - 2._CUSTOM_REAL * mu_att
+            lambdaplusmu_att = lambdaplus2mu_att - mu_att
+
+            sigma_xx_att = (lambdaplus2mu_att*dux_dxl+lambda_att*duz_dzl)+&
+                         + lambdaplusmu_att*e1_sum+2._CUSTOM_REAL*mu_att*e11_sum
+            sigma_zz_att = (lambdaplus2mu_att*duz_dzl+lambda_att*dux_dxl)+&
+                         + lambdaplusmu_att*e1_sum-2._CUSTOM_REAL*mu_att*e11_sum
+            sigma_xz_att = mu_att * (duz_dxl + dux_dzl)
+            
+            if ((trim(Q_KL) == 'tromp') .OR. (trim(Q_KL) == 'ficht')) then
+              kappa_k(iglob) = (sigma_xx_att + sigma_zz_att)*(b_dux_dxl+b_duz_dzl)
+              mu_k(iglob) = sigma_xx_att * b_dux_dxl + sigma_zz_att * b_duz_dzl + &
+                         2._CUSTOM_REAL * sigma_xz_att * b_dsxz - &
+                         1._CUSTOM_REAL/3._CUSTOM_REAL * kappa_k(iglob)
+            endif
+            if (trim(Q_KL) == 'chara') then
+              kappa_k(iglob) = (dux_dxl + duz_dzl) *  (b_dux_dxl + b_duz_dzl)
+              mu_k(iglob) = dsxx * b_dsxx + dszz * b_dszz + &
+                          2._CUSTOM_REAL * dsxz * b_dsxz - 1._CUSTOM_REAL/3._CUSTOM_REAL * kappa_k(iglob)
+            endif
+          endif
+
+          !Qkappa_k(iglob) = -kappa_k(iglob)
+          !Qmu_k(iglob) = -mu_k(iglob)
           Qalpha_k(iglob) = Qkappa_k(iglob)
           Qbeta_k(iglob) = Qmu_k(iglob)
           
@@ -306,10 +371,10 @@
             vpl_global(iglob) = vpext(i,j,ispec)
             vsl_global(iglob) = vsext(i,j,ispec)
             !! Attenuation
-            Qkappal_global(iglob) = -kappal_global(iglob)
-            Qmul_global(iglob) = -mul_global(iglob)
-            Qalphal_global(iglob) = Qkappal_global(iglob)
-            Qbetal_global(iglob) = Qmul_global(iglob)
+            Qkappal_global(iglob) = QKappa_attenuationext(i,j,ispec)
+            Qmul_global(iglob) = Qmu_attenuationext(i,j,ispec)
+            Qbetal_global(iglob) = Qbeta_attenuationext(i,j,ispec)
+            Qalphal_global(iglob) = Qalpha_attenuationext(i,j,ispec)
 
             !tti_c11ul_global(iglob) = c11uext(i,j,ispec)
             !tti_c13ul_global(iglob) = c13uext(i,j,ispec)
@@ -479,33 +544,87 @@
           endif
 
           rho_kl(i,j,ispec) = rho_kl(i,j,ispec) - rhol_global(iglob)  * rho_k(iglob) * deltat
-          mu_kl(i,j,ispec) =  mu_kl(i,j,ispec) - TWO * mul_global(iglob) * mu_k(iglob) * deltat
-          kappa_kl(i,j,ispec) = kappa_kl(i,j,ispec) - kappal_global(iglob) * kappa_k(iglob) * deltat
+
+          if (ATTENUATION_VISCOELASTIC_SOLID) then
+            if((trim(Q_KL) == 'tromp') .OR. (trim(Q_KL) == 'ficht')) then 
+              mu_kl(i,j,ispec) =  mu_kl(i,j,ispec) - TWO * mu_k(iglob) * deltat
+              kappa_kl(i,j,ispec) = kappa_kl(i,j,ispec) - kappa_k(iglob) * deltat
+            endif
+            if (trim(Q_KL) == 'chara') then
+              mu_kl(i,j,ispec) =  mu_kl(i,j,ispec) - TWO * mul_global(iglob) * mu_k(iglob) * deltat
+              kappa_kl(i,j,ispec) = kappa_kl(i,j,ispec) - kappal_global(iglob) * kappa_k(iglob) * deltat
+            endif
+          endif
+
+          if (.not. ATTENUATION_VISCOELASTIC_SOLID) then
+              mu_kl(i,j,ispec) =  mu_kl(i,j,ispec) - TWO * mul_global(iglob) * mu_k(iglob) * deltat
+              kappa_kl(i,j,ispec) = kappa_kl(i,j,ispec) - kappal_global(iglob) * kappa_k(iglob) * deltat
+          endif
           ! attenuation
-          Qkappa_kl(i,j,ispec) = -1._CUSTOM_REAL * kappa_kl(i,j,ispec)
-          Qmu_kl(i,j,ispec) = -1._CUSTOM_REAL * mu_kl(i,j,ispec)
-          !Qmu_kl(i,j,ispec) = 1._CUSTOM_REAL * kappa_kl(i,j,ispec)
-          Qalpha_kl(i,j,ispec) = -1._CUSTOM_REAL * kappa_kl(i,j,ispec)
-          Qbeta_kl(i,j,ispec) = -1._CUSTOM_REAL * mu_kl(i,j,ispec)
+          ! Qkappa_kl(i,j,ispec) = -1._CUSTOM_REAL * kappa_kl(i,j,ispec)/Qkappal_global(iglob)
+          ! Qmu_kl(i,j,ispec) = -1._CUSTOM_REAL * mu_kl(i,j,ispec)/Qmul_global(iglob)
           
-          Qalpha_kl(i,j,ispec) = -1._CUSTOM_REAL * kappa_kl(i,j,ispec)*(3.0*kappal_global(iglob)+4.0*mul_global(iglob))/ &
-                               (3.0*kappal_global(iglob)+mul_global(iglob))
-          Qalpha_kl(i,j,ispec) = 0.5 * Qalpha_kl(i,j,ispec) - 0.5 * kappa_kl(i,j,ispec)*(3.0*mul_global(iglob)*Qkappal_global(iglob))/ &
-                               ((3.0*kappal_global(iglob)+4.0*mul_global(iglob))*Qmul_global(iglob) - &
-                                3.0*mul_global(iglob)*Qkappal_global(iglob)) + 0.5 * Qmu_kl(i,j,ispec)
-          ! 2018-06-27 by PWY
-          !Qalpha_kl(i,j,ispec) = -1*kappa_kl(i,j,ispec)*Qmul_global(iglob)*(kappal_global(iglob) + 4*mul_global(iglob)/3)/&
-          !              (Qmul_global(iglob)*(kappal_global(iglob)+4*mul_global(iglob)/3)-mul_global(iglob)*Qkappal_global(iglob))
+          !Qalpha_kl(i,j,ispec) = -1._CUSTOM_REAL * kappa_kl(i,j,ispec)*(3.0*kappal_global(iglob)+4.0*mul_global(iglob))/ &
+          !                     (3.0*kappal_global(iglob)+mul_global(iglob))
+          !Qalpha_kl(i,j,ispec) = 0.5 * Qalpha_kl(i,j,ispec) - 0.5 * kappa_kl(i,j,ispec)*(3.0*mul_global(iglob)*Qkappal_global(iglob))/ &
+          !                     ((3.0*kappal_global(iglob)+4.0*mul_global(iglob))*Qmul_global(iglob) - &
+          !                      3.0*mul_global(iglob)*Qkappal_global(iglob)) + 0.5 * Qmu_kl(i,j,ispec)
           
-          Qkappa_kl(i,j,ispec) = 0.5*Qalpha_kl(i,j,ispec) + 0.5* Qmu_kl(i,j,ispec) 
+          !Qkappa_kl(i,j,ispec) = 0.5*Qalpha_kl(i,j,ispec) + 0.5* Qmu_kl(i,j,ispec) 
           
           !
           rhop_kl(i,j,ispec) = rho_kl(i,j,ispec) + kappa_kl(i,j,ispec) + mu_kl(i,j,ispec)
-          beta_kl(i,j,ispec) = TWO * (mu_kl(i,j,ispec) - 4._CUSTOM_REAL * mul_global(iglob)/&
+          ! not attenuation 
+          if ( .not. ATTENUATION_VISCOELASTIC_SOLID) then
+            beta_kl(i,j,ispec) = TWO * (mu_kl(i,j,ispec) - 4._CUSTOM_REAL * mul_global(iglob)/&
                         (3._CUSTOM_REAL * kappal_global(iglob)) * kappa_kl(i,j,ispec))
-          alpha_kl(i,j,ispec) = TWO * (1._CUSTOM_REAL + 4._CUSTOM_REAL * mul_global(iglob)/&
-                         (3._CUSTOM_REAL * kappal_global(iglob))) * kappa_kl(i,j,ispec)
+            alpha_kl(i,j,ispec) = TWO * (1._CUSTOM_REAL + 4._CUSTOM_REAL * mul_global(iglob)/&
+                        (3._CUSTOM_REAL * kappal_global(iglob))) * kappa_kl(i,j,ispec)
+          endif
+          ! attenuation
+          if (ATTENUATION_VISCOELASTIC_SOLID) then
+            if (trim(Q_KL) == 'tromp') then
+              !Qkappa_kl(i,j,ispec) = -1._CUSTOM_REAL * kappa_kl(i,j,ispec)/Qkappal_global(iglob)
+              Qkappa_kl(i,j,ispec) = -1._CUSTOM_REAL * kappa_kl(i,j,ispec)
+              !Qmu_kl(i,j,ispec) = -1._CUSTOM_REAL * mu_kl(i,j,ispec)/Qmul_global(iglob)
+              Qmu_kl(i,j,ispec) = -1._CUSTOM_REAL * mu_kl(i,j,ispec)
+            endif
+            if (trim(Q_KL) == 'chara') then
+              Qkappa_kl(i,j,ispec) = Qkappa_kl(i,j,ispec) - kappal_global(iglob) * Qkappal_global(iglob) * Qkappa_k(iglob) * deltat
+              !                     (1._CUSTOM_REAL + Qkappal_global(iglob))
+              Qmu_kl(i,j,ispec) = Qmu_kl(i,j,ispec) - mul_global(iglob) * Qmul_global(iglob) * Qmu_k(iglob) * deltat
+              !                     (1._CUSTOM_REAL + Qmul_global(iglob))
+            endif
+            if (trim(Q_KL) == 'ficht') then
+              Qkappa_kl(i,j,ispec) = Qkappa_kl(i,j,ispec) -Qkappal_global(iglob)*kappal_global(iglob) * Qkappa_k(iglob) * deltat
+              Qmu_kl(i,j,ispec) = Qmu_kl(i,j,ispec) - 2._CUSTOM_REAL*Qmul_global(iglob)*mul_global(iglob)*Qmu_k(iglob)*deltat
+            endif
+            !Qkappa_kl(i,j,ispec) = 0.5_CUSTOM_REAL * Qkappa_kl(i,j,ispec) + 0.5_CUSTOM_REAL * Qmu_kl(i,j,ispec)
 
+            Qalpha_kl(i,j,ispec) = (Qbetal_global(iglob) * vpl_global(iglob)*vpl_global(iglob))*Qkappa_kl(i,j,ispec)/&
+                  (Qbetal_global(iglob) * vpl_global(iglob)*vpl_global(iglob) - &
+                  Qalphal_global(iglob) * vsl_global(iglob)*vsl_global(iglob))
+            
+            Qbeta_kl(i,j,ispec) = Qmu_kl(i,j,ispec) - &
+                  (Qalphal_global(iglob) * vsl_global(iglob)**2)*Qkappa_kl(i,j,ispec)/&
+                  (Qbetal_global(iglob) * vpl_global(iglob)**2 - Qalphal_global(iglob) * vsl_global(iglob)**2)
+            
+            !Qbeta_kl(i,j,ispec) = Qmu_kl(i,j,ispec)
+
+            beta_kl(i,j,ispec) = TWO * (mu_kl(i,j,ispec) - 4._CUSTOM_REAL * mul_global(iglob)/&
+                  (3._CUSTOM_REAL * kappal_global(iglob)) * kappa_kl(i,j,ispec)) + &
+                  (2._CUSTOM_REAL * Qalphal_global(iglob) * vsl_global(iglob)**2)*Qkappa_kl(i,j,ispec)/&
+                  (Qbetal_global(iglob) * vpl_global(iglob)**2 - Qalphal_global(iglob) * vsl_global(iglob)**2)-&
+                  (2._CUSTOM_REAL * vsl_global(iglob)**2)*Qkappa_kl(i,j,ispec)/&
+                  (vpl_global(iglob)**2 - vsl_global(iglob)**2)
+
+            alpha_kl(i,j,ispec) = TWO * (1._CUSTOM_REAL + 4._CUSTOM_REAL * mul_global(iglob)/&
+                  (3._CUSTOM_REAL * kappal_global(iglob))) * kappa_kl(i,j,ispec) + &
+                  (2._CUSTOM_REAL * vpl_global(iglob)**2)*Qkappa_kl(i,j,ispec)/&
+                  (vpl_global(iglob)**2 - vsl_global(iglob)**2) - &
+                  (2._CUSTOM_REAL * Qbetal_global(iglob) * vpl_global(iglob)**2)*Qkappa_kl(i,j,ispec)/&
+                  (Qbetal_global(iglob) * vpl_global(iglob)**2 - Qalphal_global(iglob) * vsl_global(iglob)**2)
+          endif
           
           dl_lambda_kl(i,j,ispec) = (1._CUSTOM_REAL - 2._CUSTOM_REAL*mul_global(iglob)/(3._CUSTOM_REAL*kappal_global(iglob)))*&
                      kappa_kl(i,j,ispec) 
@@ -804,7 +923,7 @@
             !hti_thom_delta_kl(i,j,ispec) = hti_thom_delta_kl(i,j,ispec) - hti_rhopl_global(iglob)*&
              !hti_alphal_global(iglob)*hti_alphal_global(iglob)*(hti_alphal_global(iglob)**2-hti_betal_global(iglob)**2)*&
              !hti_ec_c13_k(iglob)*deltat/hti_coeffl_global(nglob)
-            if ((trim(M_PAR) == 'ttiecu') .OR. (trim(M_PAR) == 'ttithom')) then
+            if ((trim(M_PAR) == 'ttiecu') .OR. (trim(M_PAR) == 'ttithom' .OR. trim(M_PAR) == 'ttivel')) then
               tti_ecu_c11_kl(i,j,ispec) = tti_ec_c11_kl(i,j,ispec) * tti_c11ul_global(iglob) * m1l_global(iglob) / &
                  (tti_c11l_global(iglob) * 8._CUSTOM_REAL) + &
                  tti_ec_c13_kl(i,j,ispec) * tti_c11ul_global(iglob) * m2l_global(iglob) / (tti_c13l_global(iglob) * 8._CUSTOM_REAL) + &
@@ -915,12 +1034,33 @@
 
              !tti_thom_theta_kl(i,j,ispec) = tti_ecu_theta_kl(i,j,ispec)
 
+             !tti_thom_rhop_kl(i,j,ispec) = tti_ecu_rho_kl(i,j,ispec)
+             !tti_thom_alpha_kl(i,j,ispec) = hti_thom_alpha_kl(i,j,ispec)
+             !tti_thom_beta_kl(i,j,ispec) = hti_thom_beta_kl(i,j,ispec)
+             !tti_thom_epsilon_kl(i,j,ispec) = hti_thom_epsilon_kl(i,j,ispec)
+             !tti_thom_delta_kl(i,j,ispec) = hti_thom_delta_kl(i,j,ispec)
+             !tti_thom_theta_kl(i,j,ispec) = tti_ecu_theta_kl(i,j,ispec)
+             
              !pdh_tti_thom_alpha(i,j,ispec) = pdh_hti_thom_alpha(i,j,ispec)
              !pdh_tti_thom_beta(i,j,ispec) = pdh_hti_thom_beta(i,j,ispec)
              !pdh_tti_thom_epsilon(i,j,ispec) = pdh_hti_thom_epsilon(i,j,ispec)
              !pdh_tti_thom_delta(i,j,ispec) = pdh_hti_thom_delta(i,j,ispec)
              !pdh_tti_thom_rhop(i,j,ispec) = pdh_hti_thom_rhop(i,j,ispec)
              !pdh_tti_thom_theta(i,j,ispec) = pdh_tti_ecu_theta(i,j,ispec)
+
+             tti_vel_rhop_kl(i,j,ispec) = tti_vel_rhop_kl(i,j,ispec) + hti_vel_rhop_kl(i,j,ispec)
+             tti_vel_alpha_kl(i,j,ispec) = tti_vel_alpha_kl(i,j,ispec) + hti_vel_alpha_kl(i,j,ispec)
+             tti_vel_beta_kl(i,j,ispec) = tti_vel_beta_kl(i,j,ispec) + hti_vel_beta_kl(i,j,ispec)
+             tti_vel_alphah_kl(i,j,ispec) = tti_vel_alphah_kl(i,j,ispec) +  hti_vel_alphah_kl(i,j,ispec)
+             tti_vel_alphan_kl(i,j,ispec) = tti_vel_alphan_kl(i,j,ispec) + hti_vel_alphan_kl(i,j,ispec)
+             tti_vel_theta_kl(i,j,ispec) = tti_vel_theta_kl(i,j,ispec) + tti_ecu_theta_kl(i,j,ispec)
+
+             pdh_tti_vel_alpha(i,j,ispec) = pdh_tti_vel_alpha(i,j,ispec) + pdh_hti_vel_alpha(i,j,ispec)
+             pdh_tti_vel_beta(i,j,ispec) = pdh_tti_vel_beta(i,j,ispec) + pdh_hti_vel_beta(i,j,ispec)
+             pdh_tti_vel_alphah(i,j,ispec) = pdh_tti_vel_alphah(i,j,ispec) + pdh_hti_vel_alphah(i,j,ispec)
+             pdh_tti_vel_alphan(i,j,ispec) = pdh_tti_vel_alphan(i,j,ispec) + pdh_hti_vel_alphan(i,j,ispec)
+             pdh_tti_vel_rhop(i,j,ispec) = pdh_tti_vel_rhop(i,j,ispec) + pdh_hti_vel_rhop(i,j,ispec)
+             pdh_tti_vel_theta(i,j,ispec) = pdh_tti_vel_theta(i,j,ispec) + pdh_tti_ecu_theta(i,j,ispec)            
             endif 
             !tti_ecu_c11_kl(i,j,ispec) = &
             !   tti_ec_c11_kl(i,j,ispec) * tti_c11ul_global(iglob) * m1l_global(iglob)/(tti_c11l_global(iglob) * 8._CUSTOM_REAL) + &
