@@ -3,13 +3,11 @@
 isource=$1
 NPROC_SPECFEM=$2
 data_type=$3
-data_list=$4
-velocity_dir=$5
-SAVE_FORWARD=$6
-WORKING_DIR=$7
-DISK_DIR=$8
-DATA_DIR=$9
-job=${10}
+velocity_dir=$4
+SAVE_FORWARD=$5
+WORKING_DIR=$6
+DISK_DIR=$7
+DATA_DIR=$8
 
 if [ $isource -eq 1 ] ; then
     echo "SPECFEM3D Forward Modeling ..."
@@ -39,13 +37,13 @@ if [ "$(ls -A $velocity_dir)" ]; then
 fi
 
 # Source location
-#export lat=$(awk -v "line=$isource" 'NR==line { print $1 }' DATA/sources.dat)
-#export lon=$(awk -v "line=$isource" 'NR==line { print $2 }' DATA/sources.dat)
-#export dep=$(awk -v "line=$isource" 'NR==line { print $3 }' DATA/sources.dat)
+export lat=$(awk -v "line=$isource" 'NR==line { print $1 }' DATA/sources.dat)
+export lon=$(awk -v "line=$isource" 'NR==line { print $2 }' DATA/sources.dat)
+export dep=$(awk -v "line=$isource" 'NR==line { print $3 }' DATA/sources.dat)
 
-#if $DISPLAY_DETAILS ; then
-#    echo "source $isource -- location lat=$lat m lon=$lon m depth=$dep km "
-#fi
+if $DISPLAY_DETAILS ; then
+    echo "source $isource -- location lat=$lat m lon=$lon m depth=$dep km "
+fi
 
 ##### edit 'Par_file' #####
 FILE="./DATA/Par_file"
@@ -57,18 +55,10 @@ if [ `grep ^USE_FORCE_POINT_SOURCE   ./DATA/Par_file | cut -d = -f 2 ` ]; then
 else
     FILE="DATA/CMTSOLUTION"
 fi
-
-# Source location
-export xs=$(awk -v "line=$isource" 'NR==line { print $1 }' DATA/sources_3D.dat)
-export ys=$(awk -v "line=$isource" 'NR==line { print $2 }' DATA/sources_3D.dat)
-export zs=$(awk -v "line=$isource" 'NR==line { print $3 }' DATA/sources_3D.dat)
-
-zs=`expr "$zs * 0.001"|bc`
-
 echo "edit SOURCE : $FILE "
-sed -e "s/^latorUTM.*$/latorUTM:    $ys/g" $FILE > temp;  mv temp $FILE
-sed -e "s/^longorUTM.*$/longorUTM:    $xs/g" $FILE > temp;  mv temp $FILE
-sed -e "s/^depth.*$/depth:    $zs/g" $FILE > temp;  mv temp $FILE
+sed -e "s/^latorUTM.*$/latorUTM:    $lat/g" $FILE > temp;  mv temp $FILE
+sed -e "s/^longorUTM.*$/longorUTM:    $lon/g" $FILE > temp;  mv temp $FILE
+sed -e "s/^depth.*$/depth:    $dep/g" $FILE > temp;  mv temp $FILE
 
 ##### forward simulation (data) #####
 # creates and decomposes mesh

@@ -46,10 +46,21 @@ echo "running solver..."
 mpirun -np $NPROC_SPECFEM ./bin/xspecfem3D
 mv  OUTPUT_FILES/output_solver.txt  OUTPUT_FILES/output_adjoint.txt
 
+export xs=$(awk -v "line=$isource" 'NR==line { print $1 }' DATA/sources_3D.dat)
+export ys=$(awk -v "line=$isource" 'NR==line { print $2 }' DATA/sources_3D.dat)
+export zs=$(awk -v "line=$isource" 'NR==line { print $3 }' DATA/sources_3D.dat)
+#mpirun -np $NPROC_SPECFEM ./bin/mask_func_3D.exe $xs $ys $zs DATA/ OUTPUT_FILES/
+#zs=$(expr $zs * 1000)
+mpirun -np $NPROC_SPECFEM ./bin/mask_func_3D.exe $xs $ys $zs OUTPUT_FILES/DATABASES_MPI/ OUTPUT_FILES/DATABASES_MPI/ DATA/
 # save
 cp SEM/*    $ISRC_DATA_DIR/
 if [ $isource -eq 1 ]; then  # for size
     echo "copy mesh file to $DISK_DIR/misfit_kernel"
     mkdir -p $DISK_DIR/misfit_kernel 
     cp -r ./OUTPUT_FILES/DATABASES_MPI/proc*_external_mesh.bin $DISK_DIR/misfit_kernel/
+    cp -r ./OUTPUT_FILES/DATABASES_MPI/proc*_x.bin $DISK_DIR/misfit_kernel/
+    cp -r ./OUTPUT_FILES/DATABASES_MPI/proc*_y.bin $DISK_DIR/misfit_kernel/
+    cp -r ./OUTPUT_FILES/DATABASES_MPI/proc*_z.bin $DISK_DIR/misfit_kernel/
+    cp -r ./OUTPUT_FILES/DATABASES_MPI/proc*_ibool.bin $DISK_DIR/misfit_kernel/
+    cp -r ./OUTPUT_FILES/DATABASES_MPI/proc*_weights_kernel.bin $DISK_DIR/misfit_kernel/
 fi
