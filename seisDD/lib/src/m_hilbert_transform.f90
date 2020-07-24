@@ -1,6 +1,4 @@
 !! module for hilbert transform
-!! created by Yanhua O. Yuan ( yanhuay@princeton.edu)
-
 module m_hilbert_transform
     use constants, only : CUSTOM_REAL
     implicit none 

@@ -1,6 +1,5 @@
 !! main subroutines for optimization scheme
-!! created by Yanhua O. Yuan ( yanhuay@princeton.edu)
-
+!! modified by Wenyong Pan
 !!!!!!!!!!!!!!!! OPTIMIZATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine SD(g_new, NSTEP, p_new)
     use constants
@@ -18,6 +17,26 @@ subroutine SD(g_new, NSTEP, p_new)
     p_new(1:NSTEP) = - g_new(1:NSTEP)
 
 end subroutine SD
+
+subroutine LCG(g_new, NSTEP, CG_method, cgstep, p_new)
+    use constants
+    implicit none
+
+    !! steepest descent method
+    real(kind=CUSTOM_REAL), dimension(*), intent(in) :: g_new
+    integer, intent(in) :: NSTEP
+    character(len=2), intent(in) :: CG_method
+    integer, intent(out) :: cgstep
+    real(kind=CUSTOM_REAL), dimension(*), intent(out) :: p_new
+
+    !! initialization 
+    p_new (1:NSTEP) = 0.0_CUSTOM_REAL
+
+    !! SD 
+    p_new(1:NSTEP) = - g_new(1:NSTEP)
+
+end subroutine LCG
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine NLCG(g_new, g_old, p_old, NSTEP, CG_method, cgstep, p_new)
     !! non-linear conjugate method
