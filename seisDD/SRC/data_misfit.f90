@@ -70,7 +70,6 @@ program data_misfit
         next_step_length=initial_step_length
         optimal_step_length=0.0    
         call check_iteration(directory)
-
     endif ! compute_adjoint
 
     !! SAVE search status

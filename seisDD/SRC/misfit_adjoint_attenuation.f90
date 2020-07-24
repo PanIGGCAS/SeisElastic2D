@@ -10,6 +10,8 @@ program misfit_adjoint_attenuation
     use seismo_parameters
     implicit none
 
+!    include "mpif.h"
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     integer, parameter :: NARGS = 7
     integer ::  ier,i,icomp,irec,send_data_tag,receive_data_tag
@@ -61,6 +63,8 @@ program misfit_adjoint_attenuation
 
     !! gloabl initialization
     misfit=0.0_CUSTOM_REAL
+    misfit_WD=0.0_CUSTOM_REAL
+    misfit_joint_WD=0.0_CUSTOM_REAL
 
     ! loop over comp
     do icomp=1,ndata
@@ -140,17 +144,20 @@ program misfit_adjoint_attenuation
 
         ! misfit (AD+DD+...)
         misfit=misfit+ misfit_AD/max(num_AD,1) + misfit_DD/max(num_DD,1)
+        if (JOINT_MISFIT) then
+            misfit_WD=misfit_WD+ misfit_joint_WD/max(num_AD,1)
+        endif
 
         ! adjoint
         if(compute_adjoint) then 
             seism_adj = seism_adj_AD/max(num_AD,1) + seism_adj_DD/max(num_DD,1)
         endif
         if(VISCOELASTIC) then
-           print*,'Wenyong is running adjoint simulation with attenuation'
+           print*,'Running adjoint simulation with attenuation'
            call finalize_attenuation(input_dir,adjustl(data_names(icomp)))
         endif
         if(.not. VISCOELASTIC) then
-           print*,'Wenyong is running adjoint simulation without attenuation'
+           print*,'Running adjoint simulation without attenuation'
            call finalize2(input_dir,adjustl(data_names(icomp)))
         endif
 
@@ -168,6 +175,20 @@ program misfit_adjoint_attenuation
         write(IOUT,*) misfit
     endif
     close(IOUT)
+
+    if (JOINT_MISFIT) then
+        write(filename,'(a,i6.6,a)') &
+            trim(input_dir)//'/proc',myrank,'_misfit_WD.dat'
+        OPEN (IOUT, FILE=trim(filename),status='unknown',iostat = ier)
+        if(ier/=0) then
+             print*,'Error opening data misfit file: ',trim(filename)
+             stop
+        else
+             write(IOUT,*) misfit_WD
+        endif
+        close(IOUT)       
+    endif
+
     if(DISPLAY_DETAILS .and. compute_adjoint .and. nrec_proc>0) then
         print*
         print*,'SAVE misfit -- ',trim(filename)
@@ -277,8 +298,8 @@ subroutine initialize(directory,data_name)
         call readSU(filename_syn,seism_syn)
 
         ! normalization modified by PWY
-        seism_obs=seism_obs/maxval(abs(seism_obs(:,:)))
-        seism_syn=seism_syn/maxval(abs(seism_syn(:,:)))
+!        seism_obs=seism_obs/maxval(abs(seism_obs(:,:)))
+!        seism_syn=seism_syn/maxval(abs(seism_syn(:,:)))
 
 !        call writeSU(filename_obs,seism_obs)
 !        call writeSU(filename_syn,seism_syn)
@@ -501,7 +522,8 @@ subroutine Absolute_diff()
     real(kind=CUSTOM_REAL) :: seism(NSTEP,nrec_proc)
     real(kind=CUSTOM_REAL) :: d(NSTEP),s(NSTEP),adj_trace(NSTEP),adj(NSTEP)
     real(kind=CUSTOM_REAL) :: wtr
-    real(kind=CUSTOM_REAL) :: misfit_value, misfit_trace
+    real(kind=CUSTOM_REAL) :: misfit_value, misfit_trace, misfit_value_WD
+    real(kind=CUSTOM_REAL) :: misfit_trace_WD
     integer :: ntstart,ntend,nlen
     integer :: ishift
     real(kind=CUSTOM_REAL) :: dlnA,cc_max
@@ -528,6 +550,7 @@ subroutine Absolute_diff()
     ! initialization
     adj_trace = 0.0_CUSTOM_REAL
     misfit_trace=0.0
+    misfit_trace_WD=0.0
 
     dis_sr=sqrt((st_xval(irec)-x_source)**2 &
         +(st_yval(irec)-y_source)**2 &
@@ -554,6 +577,7 @@ subroutine Absolute_diff()
     do itype=1,ntype
     ! initialization
     misfit_value=0.0
+    misfit_value_WD=0.0
     adj(:)=0.d0
 
     measurement_type=trim(measurement_types(itype))
@@ -568,10 +592,14 @@ subroutine Absolute_diff()
         JOINT_MISFIT,misfit_lambda,&
         deltat,f0,ntstart,ntend,&
         window_type,compute_adjoint, &
+        misfit_value_WD,&
         misfit_value,adj) 
 
     ! sum over itype of misfit and adjoint
     misfit_trace = misfit_trace + misfit_value**2
+    if (JOINT_MISFIT) then
+        misfit_trace_WD = misfit_trace_WD + misfit_value_WD**2
+    endif
     if(DISPLAY_DETAILS .and. compute_adjoint) then
         print*,'misfit_',trim(measurement_type),'_AD=',misfit_value
         print*,'squared misfit_',trim(measurement_type),'_AD=',misfit_value**2
@@ -584,6 +612,9 @@ subroutine Absolute_diff()
     if (ntype>=1) then 
         ! window sum 
         misfit_AD = misfit_AD + misfit_trace / ntype
+        if (JOINT_MISFIT) then
+            misfit_joint_WD = misfit_joint_WD + misfit_trace_WD / ntype
+        endif
         if(compute_adjoint) then 
             !  call process_adj(adj_trace,ntstart,ntend,dis_sr)
             if(DISPLAY_DETAILS) then
@@ -970,7 +1001,7 @@ subroutine finalize2(directory,data_name)
                 minval(seism_adj(:,:)),maxval(seism_adj(:,:))
         endif
 
-        call writeSU(filename,seism_adj)
+        call writeSU_opt(filename,seism_adj)
     endif
 
     deallocate(seism_obs)
@@ -1101,3 +1132,28 @@ subroutine writeSU(filename,seism)
     close(IOUT)
 
 end subroutine writeSU
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine writeSU_opt(filename,seism)
+    use seismo_parameters
+    integer :: ier,irec,itime
+    real(kind=CUSTOM_REAL) :: seism(NSTEP,nrec_proc)
+    character(len=MAX_FILENAME_LEN) :: filename
+    integer :: deltat_int2
+
+    open(IOUT,file=trim(filename),status='unknown',access='direct',recl=240+4*NSTEP,iostat=ier)
+    if (ier /= 0) then
+        print*, 'Error: could not open data file: ',trim(filename)
+        stop
+    endif
+
+    do irec = 1, nrec_proc
+
+        write(IOUT,rec=irec,iostat=ier) r4head,seism_adj(:,irec)
+        if (ier /= 0) exit
+    
+    enddo ! irec
+
+    close(IOUT)
+
+end subroutine writeSU_opt

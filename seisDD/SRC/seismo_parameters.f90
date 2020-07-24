@@ -1,5 +1,4 @@
 module seismo_parameters
-! yanhuay@princeton.edu
 
 use constants, only: IIN, IOUT, MAX_STRING_LEN,MAX_FILENAME_LEN,MAX_KERNEL_NUM, &
     MAX_LINES,MAX_MISFIT_TYPE, SIZE_REAL, SIZE_DOUBLE, CUSTOM_REAL,CUSTOM_COMPLEX,&
@@ -23,6 +22,8 @@ INTEGER, PARAMETER :: NGLLY=1
 CHARACTER (LEN=20) :: solver='specfem2D'
 CHARACTER (LEN=MAX_STRING_LEN) :: LOCAL_PATH='OUTPUT_FILES'
 CHARACTER (LEN=MAX_STRING_LEN) :: IBOOL_NAME='ibool.bin'
+INTEGER, dimension(:,:,:,:),allocatable :: ibool
+INTEGER, dimension(:,:,:,:),allocatable :: ibool_em
 
 !! FORWARD MODELNG INFO
 INTEGER, PARAMETER :: NSTEP=4800 
@@ -91,11 +92,12 @@ REAL(KIND=CUSTOM_REAL) :: misfit_ratio_previous=0.0001
 
 !! POST-PROCESSING
 LOGICAL :: smooth=.false.
-LOGICAL :: MASK_SOURCE=.false.
+LOGICAL :: MASK_SOURCE=.true.
 LOGICAL :: MASK_STATION=.false.
 LOGICAL :: MASK_DAMP=.true.
 LOGICAL :: MASK_MODEL=.false.
-REAL(KIND=CUSTOM_REAL), PARAMETER :: source_radius=8.0
+LOGICAL :: MASK_TOPO=.false.
+REAL(KIND=CUSTOM_REAL), PARAMETER :: source_radius=30.0
 REAL(KIND=CUSTOM_REAL), PARAMETER :: station_radius=4.0
 INTEGER, PARAMETER :: mask_z=0
 INTEGER, PARAMETER :: mask_zend=0
@@ -104,11 +106,18 @@ INTEGER, PARAMETER :: mask_zend=0
 LOGICAL :: DISPLAY_DETAILS=.false.
 !! COMPUTE ATTENUATION KERNELS by PWY
 LOGICAL :: VISCOELASTIC=.false.
+!! Method for computing attenuation kernels
+LOGICAL :: TROMP_METHOD=.false.
 !! Using joint misfit or not for viscoelastic FWI
 LOGICAL :: JOINT_MISFIT=.false.
 !! Joint misfit tradeoff parameter
 !! misfit_lambda*WD + (1-misfit_lambda)*RA
 REAL(KIND=CUSTOM_REAL), PARAMETER :: misfit_lambda=0.0
+
+LOGICAL :: ATTENUATION_SCALING=.false.
+LOGICAL :: ATTENUATION_ONLY=.false.
+REAL(KIND=CUSTOM_REAL), PARAMETER :: scaling_factor_1=0.0
+REAL(KIND=CUSTOM_REAL), PARAMETER :: scaling_factor_2=0.0
 
 !!!!!!!!!!!!!!!!! gloabl variables !!!!!!!!!!!!!!!!!!!!!!
 INTEGER :: myrank,nproc,iproc
@@ -152,7 +161,8 @@ INTEGER :: stf_len
 INTEGER :: num_AD, num_DD
 INTEGER, DIMENSION(:,:), ALLOCATABLE :: is_pair
 REAL(KIND=CUSTOM_REAL), DIMENSION(:), ALLOCATABLE :: misfit_proc
-REAL(KIND=CUSTOM_REAL) :: misfit_AD,misfit_DD, misfit
+REAL(KIND=CUSTOM_REAL) :: misfit_AD,misfit_DD, misfit, misfit_WD
+REAL(KIND=CUSTOM_REAL) :: misfit_joint_WD
 
 !! kernels
 INTEGER :: nspec
@@ -177,6 +187,11 @@ REAL(KIND=CUSTOM_REAL), DIMENSION(:,:,:,:), ALLOCATABLE :: xstore
 REAL(KIND=CUSTOM_REAL), DIMENSION(:,:,:,:), ALLOCATABLE :: ystore
 REAL(KIND=CUSTOM_REAL), DIMENSION(:,:,:,:), ALLOCATABLE :: zstore
 REAL(KIND=CUSTOM_REAL), DIMENSION(:,:,:,:), ALLOCATABLE :: mask
+
+REAL(KIND=CUSTOM_REAL), DIMENSION(:), ALLOCATABLE :: xstore_3D
+REAL(KIND=CUSTOM_REAL), DIMENSION(:), ALLOCATABLE :: ystore_3D
+REAL(KIND=CUSTOM_REAL), DIMENSION(:), ALLOCATABLE :: zstore_3D
+REAL(KIND=CUSTOM_REAL), DIMENSION(:), ALLOCATABLE :: mask_3D
 !----------------------------------------------------------------------
 
 end module seismo_parameters

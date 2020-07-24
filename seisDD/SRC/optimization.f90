@@ -1,6 +1,5 @@
 program optimization
     ! To calculate gradient and update direction
-    ! yanhuay@princeton.edu
     ! modified by PWY for diagonal pseudo Hessian preconditioning in anisotropic
     ! media
     use seismo_parameters
@@ -310,6 +309,10 @@ subroutine update_direction(directory,kernel_names,iter)
         if(myrank==0) print*, 'steepest descent for iter  ',iter
         !! search direction
         call SD(g_new, size(g_new),p_new)
+    case ("TN")
+        if(myrank==0) print*, 'truncated newton for iter  ',iter
+        !!! linear conjugate gradient method
+        call LCG(g_new,size(g_new), CG_scheme, cgstep, p_new)
     case ("CG") 
         if(iter==1) then   !! first iter step, do SD
             !! search direction 

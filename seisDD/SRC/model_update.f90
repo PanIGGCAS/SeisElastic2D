@@ -1,7 +1,6 @@
 program model_update
     ! To update model along search direction
-    ! yanhuay@princeton.edu
-
+ 
     use seismo_parameters
     implicit none
 
@@ -130,9 +129,22 @@ subroutine update(directory)
     close(IIN)
     if(DISPLAY_DETAILS .and. myrank==0) print *,'Min / Max m_new = ', &
         minval(m_new(:)),maxval(m_new(:))
- !!   step_length=100
-    !! update 
-!    p_new=p_new*100
+
+    if (ATTENUATION_SCALING) then
+         allocate(temp_store(NGLLX,NGLLY,NGLLZ,NSPEC,nmod))
+         temp_store=0.0_CUSTOM_REAL
+         temp_store=reshape(p_new,shape(temp_store))
+         if (ATTENUATION_ONLY) then
+             print*, 'PWY is testing attenuation_only inversion:'
+             temp_store(:,:,:,:,1) = scaling_factor_1 * temp_store(:,:,:,:,1)
+             temp_store(:,:,:,:,2) = scaling_factor_2 * temp_store(:,:,:,:,2)
+         endif
+         if ( .not. ATTENUATION_ONLY) then
+             temp_store(:,:,:,:,3) = scaling_factor_1 * temp_store(:,:,:,:,3)
+             temp_store(:,:,:,:,4) = scaling_factor_2 * temp_store(:,:,:,:,4)
+         endif         
+         p_new=reshape(temp_store,shape(p_new))
+    endif
     m_try = m_new * (1+step_length*p_new) 
     if(DISPLAY_DETAILS .and. myrank==0) print *,'Min / Max m_try = ', &
         minval(m_try(:)),maxval(m_try(:))
